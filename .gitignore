@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.python-version
+
+# Build / dist
+build/
+dist/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+
+# Env
+.env
+.env.local
+
+# Data — DB and generated files are tracked separately;
+# normalized/rendered are derivable, so default to ignore.
+data/db/*.sqlite
+data/db/*.sqlite-*
+data/normalized/
+data/rendered/
+data/proposals/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store

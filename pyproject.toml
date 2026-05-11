@@ -1,0 +1,63 @@
+[project]
+name = "cophilo"
+version = "0.1.0"
+description = "Co-philosopher: interactive philosophy assistant — ingest articles and notes, extract concepts and questions, render annotated text."
+readme = "README.md"
+requires-python = ">=3.11,<3.15"
+license = { text = "MIT" }
+authors = [{ name = "Silvère Gangloff" }]
+
+dependencies = [
+  "typer>=0.12",
+  "pydantic>=2.6",
+  "python-dotenv>=1.0",
+  "python-frontmatter>=1.1",
+  "python-slugify>=8.0",
+  "pyyaml>=6.0",
+  "lingua-language-detector>=2.0",
+  "pymupdf>=1.24",
+  "pdfplumber>=0.11",
+  "pypandoc>=1.13",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+  "ruff>=0.5",
+]
+# M2+ dependencies, gated until needed
+extract = [
+  "anthropic>=0.40",
+]
+embed = [
+  "openai>=1.30",
+  "sqlite-vec>=0.1.3",
+  "numpy>=1.26",
+  "scikit-learn>=1.4",
+]
+biblio = [
+  "httpx>=0.27",
+]
+
+[project.scripts]
+cophilo = "cophilo.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cophilo"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
