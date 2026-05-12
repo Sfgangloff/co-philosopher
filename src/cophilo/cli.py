@@ -8,6 +8,7 @@ import typer
 
 from cophilo.config import ensure_dirs, get_config
 from cophilo.db import models as db
+from cophilo.extract.passes import extract_document
 from cophilo.ingest.dispatch import (
     SUPPORTED_SUFFIXES,
     UnsupportedFormatError,
@@ -68,6 +69,49 @@ def ingest(
     typer.echo(f"\nIngested {len(files) - len(failures)}/{len(files)} files.")
     if failures:
         raise typer.Exit(code=2)
+
+
+@app.command()
+def extract(
+    doc: int = typer.Option(None, "--doc", "-d", help="Document id; omit to process all unextracted docs"),
+    passes: str = typer.Option(
+        "concepts,questions",
+        "--passes",
+        help="Comma-separated list of passes to run (concepts, questions)",
+    ),
+) -> None:
+    """Run Claude extraction passes for one or all ingested documents."""
+    cfg = get_config()
+    db.init_db(cfg)
+    pass_tuple = tuple(p.strip() for p in passes.split(",") if p.strip())
+
+    with db.transaction(cfg) as conn:
+        if doc is not None:
+            ids = [doc]
+        else:
+            rows = conn.execute(
+                "SELECT id FROM documents WHERE status = 'ingested' ORDER BY id;"
+            ).fetchall()
+            ids = [int(r["id"]) for r in rows]
+
+    if not ids:
+        typer.echo("Nothing to extract.")
+        return
+
+    total = len(ids)
+    for i, did in enumerate(ids, start=1):
+        typer.echo(f"[{i}/{total}] extracting document #{did:04d}…")
+        stats = extract_document(cfg, did, passes=pass_tuple)
+        typer.echo(
+            f"  concepts: +{stats.confirmed_mentions} mentions, "
+            f"{stats.new_concept_proposals} new-concept proposals queued; "
+            f"questions: +{stats.question_mentions} mentions, "
+            f"{stats.new_questions} new questions"
+        )
+        typer.echo(
+            f"  tokens: {stats.input_tokens} in, {stats.output_tokens} out, "
+            f"cache {stats.cache_read_tokens} read / {stats.cache_write_tokens} write"
+        )
 
 
 @app.command(name="list")
