@@ -1,23 +1,105 @@
 # co-philosopher
 
-Interactive philosophy assistant. Ingests your articles and notes, extracts the
-concepts and questions you address, stores them in a SQLite database, renders
-annotated text, and uses the resulting taxonomy to categorize new notes,
-propose articles, and curate bibliography.
+An interactive philosophy assistant that lives in your terminal. It ingests
+your articles and notes, extracts the concepts and questions you work with,
+stores them in a queryable SQLite database, helps you turn a coherent cluster
+of notes into an article draft, and curates bibliography from PhilArchive.
 
-See [`PLAN.md`](PLAN.md) for the design and milestones.
+Key-free by default (it drives the local **Claude Code CLI**; no API key),
+offline-first where it can be, and git-friendly. See [`PLAN.md`](PLAN.md) for
+the full design and milestones.
 
-## Setup
+## Quick start
+
+After cloning your fork, it's two steps:
 
 ```bash
-uv venv
-uv pip install -e ".[dev]"
-cp .env.example .env  # then fill in API keys
-cophilo init
+./setup.sh        # 1. venv + dependencies + `cophilo init` (idempotent)
+./cophilo         # 2. start the terminal interface — type `help` inside
 ```
 
-Pandoc must be installed (`brew install pandoc` on macOS) for DOCX/LaTeX
-ingestion.
+`setup.sh` uses [`uv`](https://docs.astral.sh/uv/) if present (much faster),
+otherwise falls back to `python3 -m venv` + `pip`. `./cophilo` is a thin
+wrapper so you don't have to activate the venv; equivalently
+`source .venv/bin/activate && cophilo`. `make setup` / `make test` /
+`make lint` are also wired up. Want the offline journals memory index too?
+`COPHILO_EXTRAS="dev,memory" ./setup.sh`.
+
+Pandoc is required for DOCX/LaTeX ingestion (`brew install pandoc` on macOS);
+the GitHub CLI [`gh`](https://cli.github.com) is needed for `cophilo backup`
+(or use `--remote`). `setup.sh` warns if either is missing. Copy
+`.env.example` to `.env` only to override defaults (e.g.
+`COPHILO_LLM_BACKEND=api` with `ANTHROPIC_API_KEY` to use the Anthropic SDK
+instead of the local Claude Code CLI).
+
+## Home screen
+
+Running `cophilo` with no arguments opens a Claude-Code-style splash — a
+title bar, a discretised philosopher portrait, and a prompt. Type `help`
+(or run `cophilo help`) for the full command list with every option and its
+description, introspected from the CLI so it never drifts (the `backup`
+command is highlighted in purple so the safety net stands out). Off a TTY it
+just prints the splash and exits.
+
+## The corpus
+
+Everything you feed in lives under `data/corpus/`, in three subfolders:
+
+| Folder | Holds | Ingested as |
+|---|---|---|
+| `notes/` | raw notes (e.g. from `cophilo dialog`) | `note` |
+| `articles/` | papers you've already written | `article` |
+| `drafts/` | papers we write together (`propose`/`draft`) | *skipped* |
+
+The corpus — and everything built from it (`data/normalized/`,
+`data/rendered/`, `data/proposals/`, and the extraction DB
+`data/db/cophilo.sqlite`) — is **personal** and **gitignored** by this
+tool repo. None of it is lost: `cophilo backup` keeps all of it under
+version control in a separate private repository (see below). The only
+`data/` exception tracked here is `journals.yaml`, a curated source list.
+
+## Notes → draft workflow
+
+```bash
+cophilo dialog --topic "free will"   # offline REPL; each line saved verbatim
+                                     #   to data/corpus/notes/ as Markdown
+cophilo ingest                       # no path → ingest data/corpus: kind is
+                                     #   inferred per subfolder, drafts/ is
+                                     #   skipped, only new files are touched
+cophilo extract                      # Claude pulls concepts + questions;
+                                     #   new concepts go to a review queue
+cophilo propose                      # Claude finds a coherent article in your
+                                     #   notes; on accept it creates
+                                     #   drafts/<slug>/ and MOVES those notes in
+cophilo draft drafts/<slug>          # pull a PhilArchive bibliography from the
+                                     #   thesis and draft article.tex in place
+```
+
+`dialog` is fully offline (no LLM, no network). `propose`/`draft`/`extract`
+use the configured Claude backend (the local CLI by default — no API key).
+PDF / DOCX / LaTeX / Markdown are all ingestable.
+
+## Backup (private)
+
+`data/` is kept as its own independent git repository whose working tree
+tracks exactly the personal/derived paths (`corpus/`, `normalized/`,
+`rendered/`, `proposals/`, `db/cophilo.sqlite`) and pushed to a **private**
+backup repo. The journals memory index and `journals.yaml` are excluded
+(they derive from a source already tracked in the main repo). Nothing is
+hard-coded, so this works on anyone's fork:
+
+```bash
+cophilo backup            # ensure <your-gh-user>/co-philosopher-backup exists
+                          #   (private; created on first run), commit + push
+cophilo backup --name my-corpus-backup
+cophilo backup --remote git@example.org:me/mirror.git   # skip gh entirely
+```
+
+It resolves your GitHub account from the authenticated [`gh`](https://cli.github.com)
+CLI (`gh auth login` once), creates the private repo if missing, initialises
+`data/` as a git repo on first run, then commits and pushes the backed-up
+paths. Use `--remote` to push to any git URL (self-host, GitLab, a bare repo)
+without `gh`.
 
 ## Bibliography (PhilArchive)
 
@@ -32,9 +114,7 @@ Hits are upserted (idempotently) into the `bibliography` table unless
 `--no-save` is passed.
 
 Have Claude read a topic's literature and synthesize it — the overview, the
-big questions, and the smaller ones. By default this runs through the local
-**Claude Code CLI** (no API key); set `COPHILO_LLM_BACKEND=api` with
-`ANTHROPIC_API_KEY` to use the Anthropic SDK instead:
+big questions, and the smaller ones:
 
 ```bash
 cophilo biblio synthesize --topic "Whether the ability to do otherwise
@@ -55,7 +135,7 @@ search tool. Embeddings are computed offline with `fastembed`
 rebuilt from `data/journals.yaml` and gitignored like the other DBs.
 
 ```bash
-pip install -e ".[memory]"                       # sqlite-vec + fastembed + mcp
+uv pip install -e ".[memory]"                    # sqlite-vec + fastembed + mcp
 cophilo memory index                             # build/refresh the store
 cophilo memory search "modal accounts of free will" -n 5
 cophilo memory search "phenomenology of perception" --oa --json
@@ -67,12 +147,14 @@ next query.
 
 `.mcp.json` registers a project-scoped MCP server (`cophilo-memory`)
 exposing `search_journals` and `get_journal` tools. After
-`pip install -e ".[memory]"`, restart Claude Code (or run `/mcp`) so it
+`uv pip install -e ".[memory]"`, restart Claude Code (or run `/mcp`) so it
 picks the server up; relative `.venv/bin/cophilo-memory-mcp` resolves
 from the repo root.
 
 ## Status
 
-M1 (ingest), M2 (extraction), the M7 bibliography slice
-(PhilArchive search + topic synthesis), and a local semantic-memory MCP
-server over the journals catalog are in place.
+In place: one-step `setup.sh`, M1 (ingest, incl. Markdown), M2 (extraction),
+the M7 bibliography slice (PhilArchive search + topic synthesis), a local
+semantic-memory MCP server, the notes → draft workflow (`dialog` /
+corpus-default `ingest` / `propose` / `draft`), the `cophilo` home screen +
+`help`, and private `backup` of the corpus and everything derived from it.

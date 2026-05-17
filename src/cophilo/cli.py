@@ -8,24 +8,38 @@ from pathlib import Path
 
 import typer
 
+from cophilo.backup import DEFAULT_REPO_NAME, BackupError, backup_corpus
 from cophilo.biblio import philarchive
 from cophilo.biblio.schemas import BiblioEntry
 from cophilo.biblio.synthesize import render_markdown, synthesize_topic
 from cophilo.config import ensure_dirs, get_config
 from cophilo.db import models as db
+from cophilo.draft import accept_proposal, compose_draft, propose_articles
 from cophilo.extract.passes import extract_document
-from cophilo.ingest.dispatch import (
-    SUPPORTED_SUFFIXES,
-    UnsupportedFormatError,
-    ingest_file,
-    iter_supported,
-)
+from cophilo.ingest.dispatch import SUPPORTED_SUFFIXES, ingest_tree
+from cophilo.notes import run_dialog
 
 app = typer.Typer(
     add_completion=False,
     help="Co-philosopher: interactive philosophy assistant.",
-    no_args_is_help=True,
 )
+
+
+@app.callback(invoke_without_command=True)
+def _root(ctx: typer.Context) -> None:
+    """Bare `cophilo` opens the home screen; `cophilo help` lists everything."""
+    if ctx.invoked_subcommand is None:
+        from cophilo.tui import run_home
+
+        run_home(app)
+
+
+@app.command("help")
+def help_() -> None:
+    """List every command, with its options and their descriptions."""
+    from cophilo.tui import print_help
+
+    print_help(app)
 
 
 @app.command()
@@ -40,39 +54,85 @@ def init() -> None:
 
 
 @app.command()
-def ingest(
-    path: Path = typer.Argument(..., exists=True, readable=True, help="File or directory to ingest"),
-    kind: str = typer.Option("article", "--kind", "-k", help="article | note"),
+def backup(
+    name: str = typer.Option(
+        DEFAULT_REPO_NAME,
+        "--name",
+        envvar="COPHILO_BACKUP_REPO",
+        help="Backup repo name (created under your GitHub account if missing)",
+    ),
+    private: bool = typer.Option(
+        True, "--private/--public", help="Repo visibility (default: private)"
+    ),
+    remote: str = typer.Option(
+        None,
+        "--remote",
+        help="Push to this git URL instead of using gh (self-host, GitLab, …)",
+    ),
+    message: str = typer.Option(None, "--message", "-m", help="Commit message"),
 ) -> None:
-    """Ingest a file or directory. PDF / DOCX / LaTeX are supported."""
+    """Back up data/corpus to a separate private git repo, creating it under
+    your own GitHub account on first run. Fork-friendly: nothing hard-coded."""
+    cfg = get_config()
+    ensure_dirs(cfg)
+    try:
+        result = backup_corpus(
+            cfg, name=name, private=private, remote=remote, message=message
+        )
+    except BackupError as e:
+        typer.echo(str(e), err=True)
+        raise typer.Exit(code=1) from e
+    typer.echo(result.summary())
+
+
+@app.command()
+def ingest(
+    path: Path = typer.Argument(
+        None,
+        exists=True,
+        readable=True,
+        help="File or directory to ingest (default: data/corpus, excluding drafts/)",
+    ),
+    kind: str = typer.Option(
+        None,
+        "--kind",
+        "-k",
+        help="Force article|note for every file (default: infer from the corpus subfolder)",
+    ),
+) -> None:
+    """Ingest new files. Defaults to data/corpus: notes/ → note, articles/ →
+    article, drafts/ skipped. Already-ingested files are left untouched.
+    PDF / DOCX / LaTeX / Markdown are supported."""
     cfg = get_config()
     ensure_dirs(cfg)
     db.init_db(cfg)
 
-    if kind not in {"article", "note"}:
+    if kind is not None and kind not in {"article", "note"}:
         raise typer.BadParameter("--kind must be 'article' or 'note'")
 
-    files = list(iter_supported(path))
-    if not files:
+    root = (path or cfg.corpus_dir).resolve()
+    outcomes = ingest_tree(cfg, root, kind_override=kind)
+    if not outcomes:
         typer.echo(
-            f"No supported files found at {path}. Supported: {sorted(SUPPORTED_SUFFIXES)}"
+            f"No supported files found at {root}. Supported: {sorted(SUPPORTED_SUFFIXES)}"
         )
         raise typer.Exit(code=1)
 
-    failures: list[tuple[Path, str]] = []
-    for f in files:
-        try:
-            doc_id = ingest_file(cfg, f, kind=kind)
-            typer.echo(f"[ok]   #{doc_id:04d}  {f}")
-        except UnsupportedFormatError as e:
-            failures.append((f, str(e)))
-            typer.echo(f"[skip] {f}: {e}", err=True)
-        except Exception as e:  # pragma: no cover — surface unexpected failures
-            failures.append((f, str(e)))
-            typer.echo(f"[fail] {f}: {e}", err=True)
+    new = [o for o in outcomes if o.status == "new"]
+    existing = [o for o in outcomes if o.status == "existing"]
+    failed = [o for o in outcomes if o.status == "failed"]
 
-    typer.echo(f"\nIngested {len(files) - len(failures)}/{len(files)} files.")
-    if failures:
+    for o in new:
+        typer.echo(f"[new]  #{o.doc_id:04d}  [{o.kind:7}]  {o.path}")
+    for o in failed:
+        typer.echo(f"[fail] {o.path}: {o.error}", err=True)
+
+    typer.echo(
+        f"\nIngested {len(new)} new, skipped {len(existing)} already-ingested"
+        + (f", {len(failed)} failed" if failed else "")
+        + "."
+    )
+    if failed:
         raise typer.Exit(code=2)
 
 
@@ -136,6 +196,117 @@ def list_docs(
             f"#{row['id']:04d}  [{row['kind']:7}]  [{row['language'] or '??'}]  "
             f"{row['title'] or '(untitled)'}"
         )
+
+
+@app.command()
+def dialog(
+    topic: str = typer.Option(None, "--topic", "-t", help="Group this session under a topic (used in the filename/title)"),
+    lang: str = typer.Option(None, "--lang", help="Force note language: en | fr (default: auto-detect, offline)"),
+) -> None:
+    """Open an offline note-taking REPL. Each line you type is saved verbatim
+    into data/corpus/notes/ as Markdown. No LLM, no network."""
+    cfg = get_config()
+    ensure_dirs(cfg)
+    if lang is not None and lang not in {"en", "fr"}:
+        raise typer.BadParameter("--lang must be 'en' or 'fr'")
+    run_dialog(cfg, topic=topic, language=lang, echo=typer.echo)
+
+
+def _echo_tokens(result: object) -> None:
+    typer.echo(
+        f"[tokens: {getattr(result, 'input_tokens', 0)} in, "
+        f"{getattr(result, 'output_tokens', 0)} out, "
+        f"cache {getattr(result, 'cache_read_tokens', 0)} read / "
+        f"{getattr(result, 'cache_write_tokens', 0)} write]",
+        err=True,
+    )
+
+
+@app.command()
+def propose(
+    lang: str = typer.Option(None, "--lang", help="Prompt language: en | fr"),
+    max_notes: int = typer.Option(80, "--max-notes", help="Max notes to consider"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Accept every proposal without prompting"),
+) -> None:
+    """Scan your notes for a coherent article. On acceptance, create a
+    drafts/<slug>/ folder and MOVE the relevant notes into it."""
+    cfg = get_config()
+    ensure_dirs(cfg)
+    db.init_db(cfg)
+
+    typer.echo("Reading your notes …", err=True)
+    result = propose_articles(cfg, language=lang, max_notes=max_notes)
+    if result.notes_considered == 0:
+        typer.echo("No notes to consider. Capture some with `cophilo dialog`, then `cophilo ingest`.")
+        return
+    if not result.proposals:
+        typer.echo(
+            f"Considered {result.notes_considered} note(s); no coherent article yet."
+        )
+        _echo_tokens(result)
+        return
+
+    for i, p in enumerate(result.proposals, start=1):
+        titles = [result.notes_by_id[n].title for n in p.note_ids if n in result.notes_by_id]
+        typer.echo("")
+        typer.echo(f"[{i}/{len(result.proposals)}] {p.title}")
+        typer.echo(f"  thesis:    {p.thesis}")
+        typer.echo(f"  rationale: {p.rationale}")
+        typer.echo(f"  notes ({len(p.note_ids)}): " + "; ".join(titles))
+        if p.outline:
+            typer.echo("  outline:   " + " → ".join(p.outline))
+        if p.open_questions:
+            typer.echo("  open Qs:   " + "; ".join(p.open_questions))
+
+        if not yes and not typer.confirm(
+            f"Create draft and move {len(p.note_ids)} note(s)?", default=False
+        ):
+            typer.echo("  skipped.")
+            continue
+        slug = p.slug if yes else typer.prompt("  draft folder slug", default=p.slug)
+        chosen = p.model_copy(update={"slug": slug})
+        draft_dir = accept_proposal(cfg, chosen, result.notes_by_id)
+        typer.echo(f"  → created {draft_dir}  ({len(p.note_ids)} notes moved)")
+        typer.echo(f"    next: cophilo draft {draft_dir}")
+
+    _echo_tokens(result)
+
+
+@app.command()
+def draft(
+    folder: Path = typer.Argument(..., help="A drafts/<slug>/ folder, or just the slug"),
+    query: str = typer.Option(None, "--query", "-q", help="PhilArchive query (default: the draft's thesis)"),
+    lang: str = typer.Option(None, "--lang", help="Article language: en | fr (default: auto)"),
+    limit: int = typer.Option(30, "--limit", "-n", help="Max bibliography works to retrieve"),
+) -> None:
+    """Draft an article (.tex) for a draft folder: pull a PhilArchive
+    bibliography from the thesis and have Claude write it from your notes."""
+    cfg = get_config()
+    ensure_dirs(cfg)
+    db.init_db(cfg)
+
+    draft_dir = folder if folder.is_dir() else cfg.corpus_drafts_dir / str(folder)
+    if not draft_dir.is_dir():
+        raise typer.BadParameter(f"No such draft folder: {draft_dir}")
+
+    typer.echo(f"Drafting from {draft_dir} …", err=True)
+    try:
+        result = compose_draft(cfg, draft_dir, language=lang, query=query, limit=limit)
+    except ValueError as e:
+        typer.echo(str(e), err=True)
+        raise typer.Exit(code=1) from e
+
+    typer.echo(f"Bibliography query: '{result.query}' — {len(result.entries)} work(s).")
+    typer.echo(
+        f"Wrote {result.tex_path}  "
+        f"({len(result.draft.sections)} sections, {len(result.draft.references)} refs, "
+        f"language {result.language})"
+    )
+    typer.echo(
+        f"[tokens: {result.input_tokens} in, {result.output_tokens} out, "
+        f"cache {result.cache_read_tokens} read / {result.cache_write_tokens} write]",
+        err=True,
+    )
 
 
 biblio_app = typer.Typer(

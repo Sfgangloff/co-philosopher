@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Convenience wrapper so `./cophilo` works straight after ./setup.sh
+# without activating the virtualenv. (Inside the venv, just run `cophilo`.)
+here="$(cd "$(dirname "$0")" && pwd)"
+if [ ! -x "$here/.venv/bin/cophilo" ]; then
+  echo "co-philosopher is not set up yet — run ./setup.sh first." >&2
+  exit 1
+fi
+exec "$here/.venv/bin/cophilo" "$@"

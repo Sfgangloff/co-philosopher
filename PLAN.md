@@ -270,8 +270,13 @@ Each pass is a separate prompt. Passes run sequentially per document with
 ## 8. CLI surface
 
 ```
+cophilo                                 # home screen (splash) + offline prompt
+cophilo help                            # every command, with options + descriptions
 cophilo init                            # set up DB, config, .env
-cophilo ingest <path | dir>             # auto-detects format
+cophilo backup [--name N] [--remote URL] # push corpus → private backup repo
+cophilo dialog [--topic T] [--lang]     # offline note-capture REPL → corpus/notes
+cophilo ingest [path]                   # default: corpus/ (kind per subfolder,
+                                        #   drafts/ skipped, only what's new)
 cophilo extract [--doc ID] [--pass NAME] [--all]
 cophilo review                          # interactive queue
 cophilo render <doc> [--html]
@@ -280,11 +285,11 @@ cophilo concept <slug>
 cophilo concept evolve <slug>           # paragraph-form summary across years
 cophilo question <id>
 cophilo tensions [--concept SLUG]
-cophilo notes add                       # opens $EDITOR
-cophilo notes ingest <file>
 cophilo notes categorize [--since DATE]
 cophilo trends [--window 30d]
-cophilo propose article [--topic SLUG]
+cophilo propose                         # find a coherent article in your notes;
+                                        #   on accept → drafts/<slug>/ + move notes
+cophilo draft <drafts/slug>             # biblio + Claude → article.tex in the folder
 cophilo biblio <concept-slug | --draft PATH>
 cophilo taxonomy recluster
 cophilo export concept-graph [--out FILE.svg]
@@ -292,8 +297,9 @@ cophilo export concept-graph [--out FILE.svg]
 
 ## 9. Notes pipeline
 
-- **Capture**: `cophilo notes add` opens `$EDITOR` with a frontmatter template;
-  saved into `data/corpus/notes/YYYY/MM/<slug>.md` and ingested immediately.
+- **Capture**: `cophilo dialog` runs an offline, verbatim REPL — each line is
+  written as Markdown (with frontmatter) into `data/corpus/notes/`. No LLM, no
+  network. Picked up by the next `cophilo ingest` like any corpus file.
 - **Categorize**: concept pass only, against existing taxonomy. New-concept
   candidates from notes still go to the review queue.
 - **Trends**: cluster notes from the last N days by embedding; clusters of

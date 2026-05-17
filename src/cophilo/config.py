@@ -25,6 +25,9 @@ class Config:
     repo_root: Path
     data_dir: Path
     corpus_dir: Path
+    corpus_notes_dir: Path
+    corpus_articles_dir: Path
+    corpus_drafts_dir: Path
     normalized_dir: Path
     rendered_dir: Path
     db_path: Path
@@ -57,6 +60,9 @@ def get_config() -> Config:
         repo_root=repo_root,
         data_dir=data_dir,
         corpus_dir=data_dir / "corpus",
+        corpus_notes_dir=data_dir / "corpus" / "notes",
+        corpus_articles_dir=data_dir / "corpus" / "articles",
+        corpus_drafts_dir=data_dir / "corpus" / "drafts",
         normalized_dir=data_dir / "normalized",
         rendered_dir=data_dir / "rendered",
         db_path=db_path,
@@ -83,5 +89,14 @@ def get_config() -> Config:
 
 
 def ensure_dirs(cfg: Config) -> None:
-    for p in (cfg.data_dir, cfg.corpus_dir, cfg.normalized_dir, cfg.rendered_dir, cfg.db_path.parent):
+    for p in (
+        cfg.data_dir,
+        cfg.corpus_dir,
+        cfg.corpus_notes_dir,
+        cfg.corpus_articles_dir,
+        cfg.corpus_drafts_dir,
+        cfg.normalized_dir,
+        cfg.rendered_dir,
+        cfg.db_path.parent,
+    ):
         p.mkdir(parents=True, exist_ok=True)

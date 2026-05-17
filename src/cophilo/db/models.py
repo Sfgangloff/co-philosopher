@@ -108,6 +108,24 @@ def set_document_status(conn: sqlite3.Connection, document_id: int, status: str)
     conn.execute("UPDATE documents SET status = ? WHERE id = ?;", (status, document_id))
 
 
+def get_document(conn: sqlite3.Connection, document_id: int) -> sqlite3.Row | None:
+    return conn.execute(
+        "SELECT * FROM documents WHERE id = ?;", (document_id,)
+    ).fetchone()
+
+
+def update_document_source(
+    conn: sqlite3.Connection, document_id: int, source_path: str
+) -> None:
+    """Repoint a document's source path (used when notes are moved into a
+    draft folder). ``source_path`` is UNIQUE, so the caller must ensure the
+    new path is free."""
+    conn.execute(
+        "UPDATE documents SET source_path = ? WHERE id = ?;",
+        (source_path, document_id),
+    )
+
+
 # --- Bibliography ----------------------------------------------------------
 
 
