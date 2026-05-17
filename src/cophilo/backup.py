@@ -222,8 +222,12 @@ def backup_corpus(
     else:
         _git(run, root, "remote", "add", "origin", remote_url)
 
-    # 4. Stage & commit only the built-from-your-stuff paths (so siblings
-    #    like memory.sqlite / journals.yaml are never pulled in).
+    # 4. Stage only the built-from-your-stuff paths (so siblings like
+    #    memory.sqlite / journals.yaml are never pulled in), then commit
+    #    the staged index. We do NOT pass the paths again to `commit`: an
+    #    existing-but-empty derived dir (e.g. normalized/ before the first
+    #    ingest) is a valid pathspec for `add` but matches nothing git
+    #    knows, which would make `commit -- <that dir>` fail outright.
     paths = backup_paths(cfg)
     _git(run, root, "add", "-A", "--", *paths)
     dirty = bool(
@@ -233,7 +237,7 @@ def backup_corpus(
     committed = False
     if dirty:
         ident = _ensure_identity(run, root)
-        res = _git(run, root, *ident, "commit", "-m", msg, "--", *paths)
+        res = _git(run, root, *ident, "commit", "-m", msg)
         if not res.ok:
             raise BackupError(f"git commit failed: {res.stderr.strip() or res.stdout.strip()}")
         committed = True

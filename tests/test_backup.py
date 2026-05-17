@@ -129,6 +129,26 @@ def test_backup_stages_corpus_and_derived_folders(isolated_data_dir):
     assert "db/memory.sqlite" not in staged
 
 
+def test_commit_takes_no_pathspec(isolated_data_dir):
+    """Regression: an existing-but-empty derived dir (e.g. normalized/
+    before the first ingest) is a valid `add` pathspec but matches
+    nothing git knows, so `commit -- <dir>` used to fail outright. The
+    commit must commit the staged index, with no pathspec."""
+    cfg = isolated_data_dir
+    cfg.normalized_dir.mkdir(parents=True, exist_ok=True)  # exists, empty
+    cfg.rendered_dir.mkdir(parents=True, exist_ok=True)
+    r = FakeRunner()
+    backup_corpus(cfg, runner=r)
+
+    commits = [c for c in r.calls if "commit" in c]
+    assert commits, r.calls
+    commit = commits[0]
+    assert "--" not in commit[commit.index("commit") :]
+    # staging is still scoped to the backup paths
+    add = r.find("git", "add", "-A", "--")
+    assert add and {"normalized", "rendered"} <= set(add[0][4:])
+
+
 def test_inline_identity_when_git_unconfigured(isolated_data_dir):
     r = FakeRunner(identity=False)
     backup_corpus(isolated_data_dir, runner=r)

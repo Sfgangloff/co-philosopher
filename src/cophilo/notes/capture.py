@@ -112,13 +112,15 @@ class DialogSession:
 
 _BANNER = (
     "cophilo dialog — type a note and press Enter to save it.\n"
-    "Commands: /done  /new (start a new note)  /cancel (discard current)  /help"
+    "To leave notes mode: /done  (or Ctrl-D / Ctrl-C — your work is already saved).\n"
+    "Other commands: /new (start a new note)  /cancel (discard current)  /help"
 )
 _HELP = (
-    "/done    finish and exit\n"
+    "/done    finish and leave notes mode (back to the cophilo prompt)\n"
     "/new     start a new note file (next line begins a fresh note)\n"
     "/cancel  delete the current note file and start over\n"
-    "/help    show this help"
+    "/help    show this help\n"
+    "Ctrl-D or Ctrl-C also leaves — every saved note is kept."
 )
 
 
@@ -169,4 +171,5 @@ def run_dialog(
         echo(f"  ↳ {status} {path.name}")
 
     echo(session.summary())
+    echo("← left notes mode (back at the cophilo prompt).")
     return session
