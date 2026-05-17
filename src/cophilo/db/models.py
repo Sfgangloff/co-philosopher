@@ -5,10 +5,11 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 from cophilo.config import Config
 
@@ -17,7 +18,7 @@ _SCHEMA_PATH = Path(__file__).resolve().parent / "schema.sql"
 
 
 def _utcnow() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def connect(cfg: Config) -> sqlite3.Connection:
@@ -105,3 +106,60 @@ def list_documents(conn: sqlite3.Connection, kind: str | None = None) -> list[sq
 
 def set_document_status(conn: sqlite3.Connection, document_id: int, status: str) -> None:
     conn.execute("UPDATE documents SET status = ? WHERE id = ?;", (status, document_id))
+
+
+# --- Bibliography ----------------------------------------------------------
+
+
+def upsert_bibliography(
+    conn: sqlite3.Connection,
+    *,
+    source: str,
+    external_id: str | None,
+    title: str,
+    authors: str | None,
+    journal: str | None,
+    year: int | None,
+    abstract: str | None,
+    doi: str | None = None,
+    quality_score: float | None = None,
+) -> int:
+    """Insert or refresh a bibliography row, keyed on (source, external_id).
+
+    Idempotent: re-fetching the same record updates its fields and
+    ``fetched_at`` rather than creating duplicates.
+    """
+    conn.execute(
+        """
+        INSERT INTO bibliography
+            (source, external_id, title, authors, journal, year, abstract,
+             doi, quality_score, fetched_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(source, external_id) DO UPDATE SET
+            title = excluded.title,
+            authors = excluded.authors,
+            journal = excluded.journal,
+            year = excluded.year,
+            abstract = excluded.abstract,
+            doi = excluded.doi,
+            quality_score = COALESCE(excluded.quality_score, bibliography.quality_score),
+            fetched_at = excluded.fetched_at;
+        """,
+        (
+            source,
+            external_id,
+            title,
+            authors,
+            journal,
+            year,
+            abstract,
+            doi,
+            quality_score,
+            _utcnow(),
+        ),
+    )
+    row = conn.execute(
+        "SELECT id FROM bibliography WHERE source = ? AND external_id IS ?;",
+        (source, external_id),
+    ).fetchone()
+    return int(row["id"])

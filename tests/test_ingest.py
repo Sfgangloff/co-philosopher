@@ -5,7 +5,6 @@ Generates fixtures on the fly so the repo stays free of binary blobs.
 
 from __future__ import annotations
 
-import os
 import sqlite3
 from pathlib import Path
 

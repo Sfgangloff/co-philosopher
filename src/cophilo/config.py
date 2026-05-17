@@ -34,6 +34,10 @@ class Config:
     claude_model_routine: str
     claude_model_hard: str
     embedding_model: str
+    llm_backend: str
+    claude_cli_path: str
+    philarchive_base_url: str
+    http_user_agent: str
 
 
 @lru_cache(maxsize=1)
@@ -57,6 +61,15 @@ def get_config() -> Config:
         claude_model_routine=os.environ.get("COPHILO_CLAUDE_MODEL_ROUTINE", "claude-sonnet-4-6"),
         claude_model_hard=os.environ.get("COPHILO_CLAUDE_MODEL_HARD", "claude-opus-4-7"),
         embedding_model=os.environ.get("COPHILO_EMBEDDING_MODEL", "text-embedding-3-large"),
+        llm_backend=os.environ.get("COPHILO_LLM_BACKEND", "cli").strip().lower(),
+        claude_cli_path=os.environ.get("COPHILO_CLAUDE_CLI", "claude"),
+        philarchive_base_url=os.environ.get(
+            "COPHILO_PHILARCHIVE_BASE_URL", "https://philarchive.org"
+        ).rstrip("/"),
+        http_user_agent=os.environ.get(
+            "COPHILO_HTTP_USER_AGENT",
+            "cophilo/0.1 (+https://github.com/Sfgangloff/co-philosopher)",
+        ),
     )
 
 

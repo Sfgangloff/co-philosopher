@@ -1,0 +1,351 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/"
+ xmlns:admin="http://webns.net/mvcb/"
+ xmlns:content="http://purl.org/rss/1.0/modules/content/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+ xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/"
+>
+
+<channel rdf:about="https://philpapers.org">
+<title>PhilPapers: Results for &#x27;free will&#x27;</title>
+<link>https://philpapers.org</link>
+<description></description>
+<syn:updateBase>2008-07-01T00:00+00:00</syn:updateBase>
+<syn:updateFrequency>1</syn:updateFrequency>
+<syn:updatePeriod>daily</syn:updatePeriod>
+<taxo:topics>
+  <rdf:Bag>
+    <rdf:li resource="http://www.dmoz.org/Reference/Bibliography/" />
+  </rdf:Bag>
+</taxo:topics>
+<items>
+ <rdf:Seq>
+  <rdf:li rdf:resource="https://philarchive.org/rec/MORATA-16" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/LISFWD" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MOOLFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/NADTFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CARFWS-3" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/NAHIFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CARFWR" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/HOBFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/RUSFWA-6" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CLAFWA-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MOUFWE" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/HARFWA-5" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/VILFWS" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MICFWS" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/HARFWA-4" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/NAHFWA-4" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/DEETFI" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/RUSFWP-3" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SHAWFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CARFWS-4" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/VILFWA-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/JEFWFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/LAMFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/LOEFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/FIGIFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CHOTFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/GOMFWT" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SHECFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MENFWD" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/KEAFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SPIFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SFWAQK" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/VILFWS-4" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/RUSFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/VILTFW-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CLAFWA-3" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/JIARFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/STEIPA-7" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/TOUTFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/KITFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/POTCCA-6" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/JASCFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CARBFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SIJTFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SCHFWA-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/FISTMO-6" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/TIMFWE" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/TOGFWA-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/ALTFWN-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/BIRFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/RUSQWX" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/BJRFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/NAHFWA-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/KMEFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CARRFW-3" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SERFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/RUSFWA-3" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SCHFWO-4" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/RUSTLO-17" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/YUXFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CARFWS-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/GRIFWI-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/HADTFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/NADIAF-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/ALLFWI" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/ZENBFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/BOYFWK" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/STAFWA-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/ELSEFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/BOUFWA-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/HASFWA-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/EASRTW-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/KIIFIA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/RUSFWA-4" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MARAFW-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/TANFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/LOPFWU" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SELFAN" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MOOANP-3" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/KNOFWA-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/NAHIAF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/NAHTPO" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/FORFWA-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/VILPPA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/YUXFWF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/GRECFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/RUSFWA-5" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/LIVFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CHAHFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/PENFWI-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/NEMFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/DORIFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MENRFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/JOHWFW-3" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SINFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/RABTIA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CUSFWI" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/BJRCOE" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/ARVANT-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CLAFWA-4" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/DEUTSS-3" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/LISDGA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/EASTBU-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/DEMFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CARRFW-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/FISHSF-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/LATTCI" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SANOFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/NAHWDR" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/NAHANV" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/PHITFW-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/EREFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/FULPFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CAIFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SERTLI" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/RUSTPO-27" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/LISTNC" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/BADTFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/BOBDED" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MILFWE" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/ALLFWA-7" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SOMFWA-3" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/RUSTLO-18" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MABFWC-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CAIFWR" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/GRACAF-6" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SCHTNS" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/VILCTR" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SYRFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/BADFWT" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/KNOFWA-3" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/WALFAO-4" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/AOYFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CYRFWG" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/ELZFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/REPRBT" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/DINPEA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SHEDFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/REPBPO-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/DOYFWT-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/REPEBT" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CYRFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MARFWA-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/TARTFW-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/VILDAD-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/RUMAWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/ISMDFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/YOSIDI-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/LISCAS-3" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/REPBRA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/KITGAF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/BOEFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/DELAFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/WATFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/EFFSTE" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/JEPDPF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/COKQTF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MALCFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/ISEAMF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/DOYJFW-3" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MATTMO-20" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/FRADFA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/BENOFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/GOMFWA-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MALCFW-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/ZAFFWW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/ZHAFWD" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CHAIBI-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/OLIDTF-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MALTFW-5" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/YADTFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SKESOF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MOYFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/FERHCO-4" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MITUFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/RUSADO-5" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/KNOFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/DOOCFW-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/KITASF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/EMBDOF-3" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/REPTCT" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/NAHDFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/STIFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/DOYSUF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/RIGSDA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/BOB_FW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/FRISFO" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/NAHTSO" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/PENHJM" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SACAPT" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/STIFWA-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/YOSKDO-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/NAHSCT" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MASRAT-5" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SACTAO-4" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/WILAMI-5" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/LANTPF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/PRETPD-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/EASRTO" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/WACLEP" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/JACTOF-3" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MARWDF-4" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SAKACT-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MUOTUF-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/JANROA-5" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MUOTUF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/ANDLOF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/BADFWI" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/RUNIOE" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/KITGAF-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MERNAF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/DAVWFW-4" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/HOLPAP-23" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/EASFWJ" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/TORCFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/DELRWF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/STOFWA-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SHESCT-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/PRIFAC-3" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/ZHUFWF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/ANDFWV" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/EDOTFS" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CARFWS-9" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/PHDFPO" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/FORFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CARPOD-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/NAHWWH" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/DANRFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/GIEFWA-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SCHGFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SHASFW-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/STIHAF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CHEFWH" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/LENDFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/JOSFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/RAHTD-8" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/NEMPIO" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/PROTAF-4" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/NAHYBA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/TREFWG" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/NICTPO-28" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/DEHTPT-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/DOYFWI" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CYRTCT" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/ANGTFW-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/ROZDDW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/HEEAC" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/VARFFT" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/RUBLFW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/JOHFAD-3" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/LISDTP" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CARCAF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/GREFWV" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/GLIFWF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/KLUMRW" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/GAIDOF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MARFW-3" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/LOOFWA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/NAHTPO-4" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/BRIEBD" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/BAUQBA-3" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/STAOOO" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CARQFO" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/ZAGDFA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MICFWF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SHENTT-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/BOTACA-3" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MALAUF-8" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/SUNTIN" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/PENFTF-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/BLUOF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MALWTF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MALTUT-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MALWTP-2" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/FRIQPV" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MALTIO-26" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MALSTP" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MAUWDA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MALTNO-17" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MALWTP-3" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/MALWAF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/JANTRO-20" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CROMRI" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/BOYTOF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/BATMCA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/CLAFFF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/TOGFWS" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/AKTQCU" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/JANOCA" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/WARACC" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/PATJCF" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/HARFWD" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/TORGDC" />
+  <rdf:li rdf:resource="https://philarchive.org/rec/BALTIO-51" />
+ </rdf:Seq>
+</items>
+</channel>
+<item rdf:about="https://philarchive.org/rec/MORATA-16">
+<title>Morgan, Christopher: A Temporal and Timeless God: How Multiple Divine Persons Can Reconcile Libertarian Free Will, Divine Foreknowledge, and Divine Agency</title>
+<link>https://philarchive.org/rec/MORATA-16</link>
+<description>_Philotheos_ 23 (1):15-26. 2023Libertarian free will and divine foreknowledge at first seem incompatible. Are humans in charge of their own destiny if God knows human agents&#x2019; free choices? We also have the related issue of God&#x2019;s agency concerning foreknowledge of human events. Can God escape divine fatalism and interact with us meaningfully if he knows how humans will act in the future? There are ways to reconcile the three, but one proposal is to utilize the concept of separate divine persons. What if there are two persons, with their difference that one is in time and one outside it? Through an exploration of this potential model one can see how foreknowledge, free will, and agency might fit together.&#x3C;div&#x3E;(&#x3C;a href=&#x22;https://philarchive.org/go.pl?id=MORATA-16&#x26;amp;proxyId=&#x26;amp;u=https%3A%2F%2Fdoi.org%2F10.5840%2Fphilotheos20232312&#x22;&#x3E;direct link&#x3C;/a&#x3E;)&#x3C;/div&#x3E;</description>
+<taxo:topics>
+  <rdf:Bag>
+  </rdf:Bag>
+</taxo:topics>
+</item>
+<item rdf:about="https://philarchive.org/rec/LISFWD">
+<title>List, Christian: Free Will, Determinism, and the Possibility of Doing Otherwise</title>
+<link>https://philarchive.org/rec/LISFWD</link>
+<description>_No&#xFB;s_ 48 (1):156-178. 2014I argue that free will and determinism are compatible, even when we take free will to require the ability to do otherwise and even when we interpret that ability modally, as the possibility of doing otherwise, and not just conditionally or dispositionally. My argument draws on a distinction between physical and agential possibility. Although in a deterministic world only one future sequence of events is physically possible for each state of the world, the more coarsely defined state of an agent and his or her environment can be consistent with more than one such sequence, and thus different actions can be &#x201C;agentially possible&#x201D;. The agential perspective is supported by our best theories of human behaviour, and so we should take it at face value when we refer to what an agent can and cannot do. On the picture I defend, free will is not a physical phenomenon, but a higher-level one on a par with other higher-level phenomena such as agency and intentionality.&#x3C;div&#x3E;(&#x3C;a href=&#x22;https://philarchive.org/go.pl?id=LISFWD&#x26;amp;proxyId=&#x26;amp;u=http%3A%2F%2Feprints.lse.ac.uk%2F46931%2F&#x22;&#x3E;direct link&#x3C;/a&#x3E;)&#x3C;/div&#x3E;</description>
+<taxo:topics>
+  <rdf:Bag>
+  </rdf:Bag>
+</taxo:topics>
+</item>
+<item rdf:about="https://philarchive.org/rec/MOOLFW">
+<title>Moore, Dwayne: Libertarian Free Will and the Physical Indeterminism Luck Objection</title>
+<link>https://philarchive.org/rec/MOOLFW</link>
+<description>_Philosophia_ 50 (1):159-182. 2021Libertarian free will is, roughly, the view that agents cause actions to occur or not occur: Maddy&#x2019;s decision to get a beer causes her to get up off her comfortable couch to get a beer, though she almost chose not to get up. Libertarian free will notoriously faces the luck objection, according to which agential states do not determine whether an action occurs or not, so it is beyond the control of the agent, hence lucky, whether an action occurs or not: Maddy&#x2019;s reasons for getting beer in equipoise with her reasons to remain in her comfortable seat do not determine that she will get up or stay seated, so it seems beyond her control, hence lucky, that she gets up. In this paper I consider a sub-set of the luck objection called the Physical Indeterminism Luck Objection, according to which indeterministic physical processes cause actions to occur or not, and agent&#x2019;s lack control over these indeterministic physical processes, so agent&#x2019;s lack control over, hence it is lucky, whether action occurs or not. After motivating the physical indeterminism luck objection, I consider responses from three recent event-causal libertarian models, and conclude that they fail to overcome the problem, though one promising avenue is opened up.&#x3C;div&#x3E;(&#x3C;a href=&#x22;https://philarchive.org/go.pl?id=MOOLFW&#x26;amp;proxyId=&#x26;amp;u=https%3A%2F%2Flink.springer.com%2F10.1007%2Fs11406-021-00370-2&#x22;&#x3E;direct link&#x3C;/a&#x3E;)&#x3C;/div&#x3E;</description>
+<taxo:topics>
+  <rdf:Bag>
+  </rdf:Bag>
+</taxo:topics>
+</item>
+</rdf:RDF>

@@ -1,0 +1,1312 @@
+# data/journals.yaml
+#
+# Trusted list of English-language academic philosophy journals, consumed by
+# the cophilo bibliography scorer (see PLAN.md §11).
+#
+# Provenance & honesty notes:
+#   * Compiled from general knowledge of the field. Publisher author-guideline
+#     pages were not machine-reachable from the build environment (all behind
+#     bot protection), so figures were NOT scraped.
+#   * `issn` is deliberately `null` throughout: an ISSN is only useful if exact,
+#     and unverified ISSNs would be worse than none. Verify at the publisher.
+#   * `typical_length` is prose guidance reflecting widely-known norms; it can
+#     and does change. `max_words` is an integer ONLY where a hard cap is a
+#     stable, well-documented community fact, else `null`. Always confirm the
+#     current limit on the journal's submission page before relying on it.
+#   * `sources: ["knowledge"]` everywhere, per the above.
+#
+# Many analytic generalist journals state no hard limit but expect research
+# articles in the ~8,000–12,000 word range; shorter "discussion notes" are
+# often capped near 3,000–4,000 words.
+#
+# ============================================================================
+# TODO (manual, ongoing): enrich this file by hand.
+#   - Fill in `max_words` per journal with the *actual* limit from each
+#     journal's current author guidelines (most are still `null`).
+#   - Tighten `typical_length` prose where a real figure is known.
+#   - Add verified `issn` values (currently `null` everywhere by design).
+#   - Add journals as gaps are noticed; flip `sources` to
+#     "publisher-guidelines" for any field confirmed against the live page.
+# Treat this as the standing issue for journal-metadata accuracy.
+# ============================================================================
+
+journals:
+  - name: "Acta Analytica"
+    publisher: "Springer"
+    issn: null
+    scope: "Analytic philosophy with emphasis on philosophy of mind, epistemology, and cognitive science."
+    typical_length: "Research articles typically ~6,000–10,000 words; no widely-publicized hard cap."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/12136"
+    sources: ["knowledge"]
+
+  - name: "African Philosophy / Philosophia Africana"
+    publisher: "Penn State University Press"
+    issn: null
+    scope: "African and Africana philosophical thought, traditions, and their engagement with global philosophy."
+    typical_length: "Articles typically ~6,000–9,000 words; verify guidelines."
+    max_words: null
+    open_access: false
+    url: "https://www.psupress.org/journals/jnls_philosophia_africana.html"
+    sources: ["knowledge"]
+
+  - name: "American Philosophical Quarterly"
+    publisher: "University of Illinois Press"
+    issn: null
+    scope: "General analytic philosophy across all core areas."
+    typical_length: "Articles typically ~7,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.uillinois.edu/"
+    sources: ["knowledge"]
+
+  - name: "Analysis"
+    publisher: "Oxford University Press (Analysis Trust)"
+    issn: null
+    scope: "Short, sharply-focused papers on a single point in any area of analytic philosophy."
+    typical_length: "Known for strict brevity: research articles roughly 4,000 words; critical notices longer by arrangement."
+    max_words: 4000
+    open_access: false
+    url: "https://academic.oup.com/analysis"
+    sources: ["knowledge"]
+
+  - name: "Analytic Philosophy"
+    publisher: "Wiley-Blackwell"
+    issn: null
+    scope: "Core analytic philosophy: language, mind, metaphysics, epistemology, logic."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://onlinelibrary.wiley.com/journal/21533393"
+    sources: ["knowledge"]
+
+  - name: "Ancient Philosophy"
+    publisher: "Philosophy Documentation Center"
+    issn: null
+    scope: "Greek and Roman philosophy and its background."
+    typical_length: "Articles typically ~6,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.pdcnet.org/ancientphil"
+    sources: ["knowledge"]
+
+  - name: "Apeiron"
+    publisher: "De Gruyter"
+    issn: null
+    scope: "Ancient philosophy and ancient science."
+    typical_length: "Articles typically ~7,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.degruyter.com/journal/key/apeiron/html"
+    sources: ["knowledge"]
+
+  - name: "Archiv für Geschichte der Philosophie"
+    publisher: "De Gruyter"
+    issn: null
+    scope: "History of philosophy from antiquity to the 20th century; publishes in English and German."
+    typical_length: "Articles typically ~8,000–14,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.degruyter.com/journal/key/agph/html"
+    sources: ["knowledge"]
+
+  - name: "Asian Journal of Philosophy"
+    publisher: "Springer"
+    issn: null
+    scope: "General philosophy with attention to Asian philosophical traditions and global analytic work."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/44204"
+    sources: ["knowledge"]
+
+  - name: "Asian Philosophy"
+    publisher: "Taylor & Francis (Routledge)"
+    issn: null
+    scope: "Philosophical traditions of India, China, Japan, Korea, and the Persian and Arabic world."
+    typical_length: "Articles typically ~6,000–9,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.tandfonline.com/journals/casp20"
+    sources: ["knowledge"]
+
+  - name: "Australasian Journal of Logic"
+    publisher: "Open access (AJL)"
+    issn: null
+    scope: "All areas of logic: philosophical, mathematical, and applied."
+    typical_length: "No strict limit; length appropriate to the result."
+    max_words: null
+    open_access: true
+    url: "https://ojs.victoria.ac.nz/ajl"
+    sources: ["knowledge"]
+
+  - name: "Australasian Journal of Philosophy"
+    publisher: "Taylor & Francis (Routledge) for the Australasian Association of Philosophy"
+    issn: null
+    scope: "General analytic philosophy; a leading generalist journal."
+    typical_length: "Articles typically ~8,000–12,000 words; discussion notes shorter."
+    max_words: null
+    open_access: false
+    url: "https://www.tandfonline.com/journals/rajp20"
+    sources: ["knowledge"]
+
+  - name: "Berkeley Studies"
+    publisher: "International Berkeley Society"
+    issn: null
+    scope: "George Berkeley's philosophy and early modern context."
+    typical_length: "Articles typically ~5,000–9,000 words."
+    max_words: null
+    open_access: true
+    url: "https://www.pdcnet.org/berkeley"
+    sources: ["knowledge"]
+
+  - name: "Bioethics"
+    publisher: "Wiley-Blackwell"
+    issn: null
+    scope: "Ethical questions raised by the biomedical sciences, healthcare, and biotechnology."
+    typical_length: "Articles typically ~4,000–7,000 words."
+    max_words: null
+    open_access: false
+    url: "https://onlinelibrary.wiley.com/journal/14678519"
+    sources: ["knowledge"]
+
+  - name: "Biology & Philosophy"
+    publisher: "Springer"
+    issn: null
+    scope: "Conceptual and philosophical issues in the biological sciences."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/10539"
+    sources: ["knowledge"]
+
+  - name: "Canadian Journal of Philosophy"
+    publisher: "Cambridge University Press"
+    issn: null
+    scope: "General philosophy across all areas and traditions."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.cambridge.org/core/journals/canadian-journal-of-philosophy"
+    sources: ["knowledge"]
+
+  - name: "Comparative Philosophy"
+    publisher: "San Jose State University (open access)"
+    issn: null
+    scope: "Cross-tradition and constructive comparative philosophy."
+    typical_length: "Articles typically ~6,000–10,000 words."
+    max_words: null
+    open_access: true
+    url: "https://comparativephilosophy.org"
+    sources: ["knowledge"]
+
+  - name: "Contemporary Aesthetics"
+    publisher: "Contemporary Aesthetics (open access)"
+    issn: null
+    scope: "Aesthetics broadly construed, including everyday and environmental aesthetics."
+    typical_length: "Articles typically ~5,000–9,000 words."
+    max_words: null
+    open_access: true
+    url: "https://contempaesthetics.org"
+    sources: ["knowledge"]
+
+  - name: "Continental Philosophy Review"
+    publisher: "Springer"
+    issn: null
+    scope: "Phenomenology, hermeneutics, critical theory, and post-structuralism."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/11007"
+    sources: ["knowledge"]
+
+  - name: "Dao: A Journal of Comparative Philosophy"
+    publisher: "Springer"
+    issn: null
+    scope: "Chinese and comparative philosophy in dialogue with Western traditions."
+    typical_length: "Articles typically ~7,000–11,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/11712"
+    sources: ["knowledge"]
+
+  - name: "Dialectica"
+    publisher: "Dialectica (open access) / formerly Wiley"
+    issn: null
+    scope: "Analytic philosophy with a focus on epistemology, metaphysics, and the philosophy of language."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: true
+    url: "https://dialectica.philosophie.ch"
+    sources: ["knowledge"]
+
+  - name: "Economics and Philosophy"
+    publisher: "Cambridge University Press"
+    issn: null
+    scope: "Foundations of economics and the intersection of economics with ethics and political philosophy."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.cambridge.org/core/journals/economics-and-philosophy"
+    sources: ["knowledge"]
+
+  - name: "Episteme"
+    publisher: "Cambridge University Press"
+    issn: null
+    scope: "Epistemology, including social epistemology and formal epistemology."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.cambridge.org/core/journals/episteme"
+    sources: ["knowledge"]
+
+  - name: "Ergo: An Open Access Journal of Philosophy"
+    publisher: "University of Michigan Publishing (open access)"
+    issn: null
+    scope: "General philosophy, all areas and traditions; triple-anonymous review."
+    typical_length: "No length limit stated; papers of any length appropriate to the argument."
+    max_words: null
+    open_access: true
+    url: "https://www.ergophiljournal.org"
+    sources: ["knowledge"]
+
+  - name: "Erkenntnis"
+    publisher: "Springer"
+    issn: null
+    scope: "Analytic philosophy: epistemology, philosophy of science, logic, language, and mind."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/10670"
+    sources: ["knowledge"]
+
+  - name: "Estetika: The European Journal of Aesthetics"
+    publisher: "Open Library of Humanities (open access)"
+    issn: null
+    scope: "Aesthetics and philosophy of art, European and analytic."
+    typical_length: "Articles typically ~6,000–9,000 words."
+    max_words: null
+    open_access: true
+    url: "https://estetikajournal.org"
+    sources: ["knowledge"]
+
+  - name: "Ethical Theory and Moral Practice"
+    publisher: "Springer"
+    issn: null
+    scope: "Normative and applied ethics and their interrelation."
+    typical_length: "Articles typically ~7,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/10677"
+    sources: ["knowledge"]
+
+  - name: "Ethics"
+    publisher: "University of Chicago Press"
+    issn: null
+    scope: "Moral, political, and legal philosophy from diverse perspectives; a leading ethics journal."
+    typical_length: "Full-length articles capped near 12,000–15,000 words; discussion pieces much shorter."
+    max_words: 15000
+    open_access: false
+    url: "https://www.journals.uchicago.edu/journals/et"
+    sources: ["knowledge"]
+
+  - name: "Ethics and Information Technology"
+    publisher: "Springer"
+    issn: null
+    scope: "Moral and political dimensions of information and communication technology."
+    typical_length: "Articles typically ~6,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/10676"
+    sources: ["knowledge"]
+
+  - name: "European Journal for Philosophy of Science"
+    publisher: "Springer for EPSA"
+    issn: null
+    scope: "General philosophy of science and the philosophy of the special sciences."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/13194"
+    sources: ["knowledge"]
+
+  - name: "European Journal of Philosophy"
+    publisher: "Wiley-Blackwell"
+    issn: null
+    scope: "Bridges analytic and continental traditions; history and contemporary philosophy."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://onlinelibrary.wiley.com/journal/14680378"
+    sources: ["knowledge"]
+
+  - name: "Faith and Philosophy"
+    publisher: "Philosophy Documentation Center for the Society of Christian Philosophers"
+    issn: null
+    scope: "Philosophy of religion and philosophical theology."
+    typical_length: "Articles typically ~7,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.pdcnet.org/faithphil"
+    sources: ["knowledge"]
+
+  - name: "Feminist Philosophy Quarterly"
+    publisher: "Western University (open access)"
+    issn: null
+    scope: "Feminist philosophy across all areas and methods."
+    typical_length: "Articles typically ~8,000–10,000 words."
+    max_words: null
+    open_access: true
+    url: "https://ojs.lib.uwo.ca/index.php/fpq"
+    sources: ["knowledge"]
+
+  - name: "Hegel Bulletin"
+    publisher: "Cambridge University Press for the Hegel Society of Great Britain"
+    issn: null
+    scope: "Hegel's philosophy and the German idealist tradition."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.cambridge.org/core/journals/hegel-bulletin"
+    sources: ["knowledge"]
+
+  - name: "History and Theory"
+    publisher: "Wiley-Blackwell for Wesleyan University"
+    issn: null
+    scope: "Philosophy of history and theory of historiography."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://onlinelibrary.wiley.com/journal/14682303"
+    sources: ["knowledge"]
+
+  - name: "Hume Studies"
+    publisher: "Philosophy Documentation Center for the Hume Society"
+    issn: null
+    scope: "David Hume's philosophy and its context and influence."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.pdcnet.org/humestudies"
+    sources: ["knowledge"]
+
+  - name: "Husserl Studies"
+    publisher: "Springer"
+    issn: null
+    scope: "Edmund Husserl's phenomenology and its development."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/10743"
+    sources: ["knowledge"]
+
+  - name: "Hypatia: A Journal of Feminist Philosophy"
+    publisher: "Cambridge University Press"
+    issn: null
+    scope: "Feminist philosophy; a leading journal in the field."
+    typical_length: "Articles typically ~8,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.cambridge.org/core/journals/hypatia"
+    sources: ["knowledge"]
+
+  - name: "Inquiry: An Interdisciplinary Journal of Philosophy"
+    publisher: "Taylor & Francis (Routledge)"
+    issn: null
+    scope: "General philosophy with an interdisciplinary orientation across all core areas."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.tandfonline.com/journals/sinq20"
+    sources: ["knowledge"]
+
+  - name: "International Journal for the Philosophy of Religion"
+    publisher: "Springer"
+    issn: null
+    scope: "Philosophy of religion across traditions."
+    typical_length: "Articles typically ~7,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/11153"
+    sources: ["knowledge"]
+
+  - name: "International Journal of Philosophical Studies"
+    publisher: "Taylor & Francis (Routledge)"
+    issn: null
+    scope: "Analytic and continental philosophy and their points of contact."
+    typical_length: "Articles typically ~8,000–11,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.tandfonline.com/journals/riph20"
+    sources: ["knowledge"]
+
+  - name: "International Philosophical Quarterly"
+    publisher: "Philosophy Documentation Center"
+    issn: null
+    scope: "General philosophy with attention to metaphysics and the broader philosophical tradition."
+    typical_length: "Articles typically ~6,000–9,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.pdcnet.org/ipq"
+    sources: ["knowledge"]
+
+  - name: "Journal of Aesthetics and Art Criticism"
+    publisher: "Oxford University Press for the American Society for Aesthetics"
+    issn: null
+    scope: "Aesthetics, philosophy of art, and criticism."
+    typical_length: "Articles typically ~7,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://academic.oup.com/jaac"
+    sources: ["knowledge"]
+
+  - name: "Journal of Applied Philosophy"
+    publisher: "Wiley-Blackwell for the Society for Applied Philosophy"
+    issn: null
+    scope: "Philosophical analysis of practical problems in public and personal life."
+    typical_length: "Articles typically ~7,000–9,000 words."
+    max_words: null
+    open_access: false
+    url: "https://onlinelibrary.wiley.com/journal/14685930"
+    sources: ["knowledge"]
+
+  - name: "Journal of Consciousness Studies"
+    publisher: "Imprint Academic"
+    issn: null
+    scope: "Philosophy and science of consciousness; interdisciplinary."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.imprint.co.uk/product/jcs/"
+    sources: ["knowledge"]
+
+  - name: "Journal of Ethics"
+    publisher: "Springer"
+    issn: null
+    scope: "Moral, political, and legal philosophy; theoretical and applied."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/10892"
+    sources: ["knowledge"]
+
+  - name: "Journal of Indian Philosophy"
+    publisher: "Springer"
+    issn: null
+    scope: "Classical and modern Indian philosophical traditions."
+    typical_length: "Articles typically ~8,000–14,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/10781"
+    sources: ["knowledge"]
+
+  - name: "Journal of Logic, Language and Information"
+    publisher: "Springer"
+    issn: null
+    scope: "Interfaces of logic, natural language, and information/computation."
+    typical_length: "Articles length appropriate to the technical result."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/10849"
+    sources: ["knowledge"]
+
+  - name: "Journal of Moral Philosophy"
+    publisher: "Brill"
+    issn: null
+    scope: "Moral, political, and legal philosophy."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://brill.com/view/journals/jmp/jmp-overview.xml"
+    sources: ["knowledge"]
+
+  - name: "Journal of Nietzsche Studies"
+    publisher: "Penn State University Press for the Friedrich Nietzsche Society"
+    issn: null
+    scope: "Nietzsche's philosophy and its reception."
+    typical_length: "Articles typically ~6,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.psupress.org/journals/jnls_jns.html"
+    sources: ["knowledge"]
+
+  - name: "Journal of Philosophical Logic"
+    publisher: "Springer"
+    issn: null
+    scope: "Philosophical and mathematical logic and their philosophical applications."
+    typical_length: "Articles length appropriate to the technical result."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/10992"
+    sources: ["knowledge"]
+
+  - name: "Journal of Political Philosophy"
+    publisher: "Wiley-Blackwell"
+    issn: null
+    scope: "Political philosophy and theory across methods and traditions."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://onlinelibrary.wiley.com/journal/14679760"
+    sources: ["knowledge"]
+
+  - name: "Journal of Symbolic Logic"
+    publisher: "Cambridge University Press for the Association for Symbolic Logic"
+    issn: null
+    scope: "Mathematical and symbolic logic."
+    typical_length: "Length appropriate to the technical result."
+    max_words: null
+    open_access: false
+    url: "https://www.cambridge.org/core/journals/journal-of-symbolic-logic"
+    sources: ["knowledge"]
+
+  - name: "Journal of the American Philosophical Association"
+    publisher: "Cambridge University Press for the APA"
+    issn: null
+    scope: "General philosophy across all areas and traditions."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.cambridge.org/core/journals/journal-of-the-american-philosophical-association"
+    sources: ["knowledge"]
+
+  - name: "Journal of the History of Philosophy"
+    publisher: "Johns Hopkins University Press"
+    issn: null
+    scope: "History of Western philosophy from antiquity to the 20th century."
+    typical_length: "Articles typically ~9,000–13,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.journalofthehistoryofphilosophy.org"
+    sources: ["knowledge"]
+
+  - name: "Kant-Studien"
+    publisher: "De Gruyter for the Kant-Gesellschaft"
+    issn: null
+    scope: "Kant's philosophy and its context; publishes in English and German."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.degruyter.com/journal/key/kant/html"
+    sources: ["knowledge"]
+
+  - name: "Kantian Review"
+    publisher: "Cambridge University Press"
+    issn: null
+    scope: "Kant's philosophy and Kantian themes in contemporary thought."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.cambridge.org/core/journals/kantian-review"
+    sources: ["knowledge"]
+
+  - name: "Linguistics and Philosophy"
+    publisher: "Springer"
+    issn: null
+    scope: "Natural language semantics, pragmatics, and the philosophy of language."
+    typical_length: "Length appropriate to the formal analysis."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/10988"
+    sources: ["knowledge"]
+
+  - name: "Locke Studies"
+    publisher: "University of Western Ontario (open access) for the Locke Society"
+    issn: null
+    scope: "John Locke's philosophy and early modern context."
+    typical_length: "Articles typically ~6,000–12,000 words."
+    max_words: null
+    open_access: true
+    url: "https://ojs.lib.uwo.ca/index.php/locke"
+    sources: ["knowledge"]
+
+  - name: "Logique et Analyse"
+    publisher: "Centre National de Recherches de Logique"
+    issn: null
+    scope: "Logic and analytic philosophy; publishes in English and French."
+    typical_length: "Length appropriate to the result."
+    max_words: null
+    open_access: false
+    url: "https://www.logiqueetanalyse.be"
+    sources: ["knowledge"]
+
+  - name: "Metaphilosophy"
+    publisher: "Wiley-Blackwell"
+    issn: null
+    scope: "The nature, aims, and methods of philosophy itself."
+    typical_length: "Articles typically ~7,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://onlinelibrary.wiley.com/journal/14679973"
+    sources: ["knowledge"]
+
+  - name: "Mind"
+    publisher: "Oxford University Press for the Mind Association"
+    issn: null
+    scope: "General philosophy; one of the oldest and most prestigious generalist journals."
+    typical_length: "No fixed limit stated; research articles commonly ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://academic.oup.com/mind"
+    sources: ["knowledge"]
+
+  - name: "Mind & Language"
+    publisher: "Wiley-Blackwell"
+    issn: null
+    scope: "Philosophy and cognitive science of mind, language, and representation."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://onlinelibrary.wiley.com/journal/14680017"
+    sources: ["knowledge"]
+
+  - name: "Minds and Machines"
+    publisher: "Springer"
+    issn: null
+    scope: "Philosophy of AI, cognitive science, and computation."
+    typical_length: "Articles typically ~7,000–11,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/11023"
+    sources: ["knowledge"]
+
+  - name: "Notre Dame Journal of Formal Logic"
+    publisher: "Duke University Press for the University of Notre Dame"
+    issn: null
+    scope: "Mathematical and philosophical logic and foundations."
+    typical_length: "Length appropriate to the technical result."
+    max_words: null
+    open_access: false
+    url: "https://www.dukeupress.edu/notre-dame-journal-of-formal-logic"
+    sources: ["knowledge"]
+
+  - name: "Noûs"
+    publisher: "Wiley-Blackwell"
+    issn: null
+    scope: "General philosophy; a leading generalist journal in the analytic tradition."
+    typical_length: "No fixed limit stated; research articles commonly ~8,000–14,000 words."
+    max_words: null
+    open_access: false
+    url: "https://onlinelibrary.wiley.com/journal/14680068"
+    sources: ["knowledge"]
+
+  - name: "Pacific Philosophical Quarterly"
+    publisher: "Wiley-Blackwell for the University of Southern California"
+    issn: null
+    scope: "General analytic philosophy across core areas."
+    typical_length: "Articles typically ~7,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://onlinelibrary.wiley.com/journal/14680114"
+    sources: ["knowledge"]
+
+  - name: "Phenomenology and the Cognitive Sciences"
+    publisher: "Springer"
+    issn: null
+    scope: "Phenomenology in dialogue with cognitive science and philosophy of mind."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/11097"
+    sources: ["knowledge"]
+
+  - name: "Philosophers' Imprint"
+    publisher: "University of Michigan Publishing (open access)"
+    issn: null
+    scope: "General philosophy, all areas; selective open-access venue."
+    typical_length: "No strict length limit; length appropriate to the argument."
+    max_words: null
+    open_access: true
+    url: "https://www.philosophersimprint.org"
+    sources: ["knowledge"]
+
+  - name: "Philosophia Mathematica"
+    publisher: "Oxford University Press"
+    issn: null
+    scope: "Philosophy of mathematics and its history."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://academic.oup.com/philmat"
+    sources: ["knowledge"]
+
+  - name: "Philosophia: Philosophical Quarterly of Israel"
+    publisher: "Springer"
+    issn: null
+    scope: "General analytic philosophy across core areas."
+    typical_length: "Articles typically ~6,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/11406"
+    sources: ["knowledge"]
+
+  - name: "Philosophical Explorations"
+    publisher: "Taylor & Francis (Routledge)"
+    issn: null
+    scope: "Philosophy of mind and action and their connection to ethics."
+    typical_length: "Articles typically ~8,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.tandfonline.com/journals/rpex20"
+    sources: ["knowledge"]
+
+  - name: "Philosophical Investigations"
+    publisher: "Wiley-Blackwell"
+    issn: null
+    scope: "Wittgensteinian and ordinary-language approaches across philosophy."
+    typical_length: "Articles typically ~6,000–9,000 words."
+    max_words: null
+    open_access: false
+    url: "https://onlinelibrary.wiley.com/journal/14679205"
+    sources: ["knowledge"]
+
+  - name: "Philosophical Issues"
+    publisher: "Wiley-Blackwell"
+    issn: null
+    scope: "Annual thematic supplement (with Noûs) on a focused topic."
+    typical_length: "Invited/thematic articles, typically ~6,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://onlinelibrary.wiley.com/journal/17582237"
+    sources: ["knowledge"]
+
+  - name: "Philosophical Papers"
+    publisher: "Taylor & Francis (Routledge) for Rhodes University"
+    issn: null
+    scope: "General philosophy across core analytic areas."
+    typical_length: "Articles typically ~7,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.tandfonline.com/journals/rppa20"
+    sources: ["knowledge"]
+
+  - name: "Philosophical Perspectives"
+    publisher: "Wiley-Blackwell"
+    issn: null
+    scope: "Annual thematic volume of invited papers on a focused area."
+    typical_length: "Invited articles, typically ~6,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://onlinelibrary.wiley.com/journal/15208583"
+    sources: ["knowledge"]
+
+  - name: "Philosophical Psychology"
+    publisher: "Taylor & Francis (Routledge)"
+    issn: null
+    scope: "Philosophy of psychology and the psychological sciences."
+    typical_length: "Articles typically ~8,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.tandfonline.com/journals/cphp20"
+    sources: ["knowledge"]
+
+  - name: "Philosophical Studies"
+    publisher: "Springer"
+    issn: null
+    scope: "Analytic philosophy across all core areas; high-volume generalist journal."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/11098"
+    sources: ["knowledge"]
+
+  - name: "Philosophical Topics"
+    publisher: "University of Arkansas Press"
+    issn: null
+    scope: "Thematic issues on focused contemporary problems."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.uark.edu/~philtop/"
+    sources: ["knowledge"]
+
+  - name: "Philosophy"
+    publisher: "Cambridge University Press for the Royal Institute of Philosophy"
+    issn: null
+    scope: "General philosophy aimed at a broad philosophical readership."
+    typical_length: "Articles typically ~6,000–9,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.cambridge.org/core/journals/philosophy"
+    sources: ["knowledge"]
+
+  - name: "Philosophy & Public Affairs"
+    publisher: "Wiley-Blackwell"
+    issn: null
+    scope: "Moral and political philosophy bearing on public questions; a leading journal."
+    typical_length: "Articles typically ~8,000–15,000 words."
+    max_words: null
+    open_access: false
+    url: "https://onlinelibrary.wiley.com/journal/10884963"
+    sources: ["knowledge"]
+
+  - name: "Philosophy & Technology"
+    publisher: "Springer"
+    issn: null
+    scope: "Philosophical study of technology, computing, and engineering."
+    typical_length: "Articles typically ~7,000–11,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/13347"
+    sources: ["knowledge"]
+
+  - name: "Philosophy and Phenomenological Research"
+    publisher: "Wiley-Blackwell"
+    issn: null
+    scope: "General philosophy across analytic core areas; a leading generalist journal."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://onlinelibrary.wiley.com/journal/19331592"
+    sources: ["knowledge"]
+
+  - name: "Philosophy and Rhetoric"
+    publisher: "Penn State University Press"
+    issn: null
+    scope: "Relations between philosophy and rhetoric, argumentation, and language."
+    typical_length: "Articles typically ~6,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.psupress.org/journals/jnls_pr.html"
+    sources: ["knowledge"]
+
+  - name: "Philosophy and Social Criticism"
+    publisher: "SAGE"
+    issn: null
+    scope: "Critical theory, continental social and political philosophy."
+    typical_length: "Articles typically ~7,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://journals.sagepub.com/home/psc"
+    sources: ["knowledge"]
+
+  - name: "Philosophy Compass"
+    publisher: "Wiley-Blackwell"
+    issn: null
+    scope: "Peer-reviewed survey articles across all areas of philosophy."
+    typical_length: "Survey articles typically ~5,000–8,000 words."
+    max_words: null
+    open_access: false
+    url: "https://onlinelibrary.wiley.com/journal/17479991"
+    sources: ["knowledge"]
+
+  - name: "Philosophy East and West"
+    publisher: "University of Hawai'i Press"
+    issn: null
+    scope: "Asian and comparative philosophy in a global context."
+    typical_length: "Articles typically ~7,000–11,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.uhpress.hawaii.edu/title/philosophy-east-and-west/"
+    sources: ["knowledge"]
+
+  - name: "Philosophy of Science"
+    publisher: "Cambridge University Press for the Philosophy of Science Association"
+    issn: null
+    scope: "General philosophy of science and the philosophy of the special sciences."
+    typical_length: "Articles typically ~8,000–10,000 words; shorter formats also published."
+    max_words: null
+    open_access: false
+    url: "https://www.cambridge.org/core/journals/philosophy-of-science"
+    sources: ["knowledge"]
+
+  - name: "Philosophy of the Social Sciences"
+    publisher: "SAGE"
+    issn: null
+    scope: "Conceptual and methodological foundations of the social sciences."
+    typical_length: "Articles typically ~7,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://journals.sagepub.com/home/pos"
+    sources: ["knowledge"]
+
+  - name: "Philosophy, Psychiatry, & Psychology"
+    publisher: "Johns Hopkins University Press"
+    issn: null
+    scope: "Philosophical issues in psychiatry, psychopathology, and mental health."
+    typical_length: "Articles typically ~5,000–9,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.press.jhu.edu/journals/philosophy-psychiatry-psychology"
+    sources: ["knowledge"]
+
+  - name: "Phronesis: A Journal for Ancient Philosophy"
+    publisher: "Brill"
+    issn: null
+    scope: "Ancient Greek and Roman philosophy; a leading journal in the area."
+    typical_length: "Articles typically ~8,000–14,000 words."
+    max_words: null
+    open_access: false
+    url: "https://brill.com/view/journals/phro/phro-overview.xml"
+    sources: ["knowledge"]
+
+  - name: "Politics, Philosophy & Economics"
+    publisher: "SAGE"
+    issn: null
+    scope: "Intersection of political philosophy, economics, and decision theory."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://journals.sagepub.com/home/ppe"
+    sources: ["knowledge"]
+
+  - name: "Proceedings of the Aristotelian Society"
+    publisher: "Oxford University Press for the Aristotelian Society"
+    issn: null
+    scope: "General philosophy; papers presented to the Society."
+    typical_length: "Papers typically ~6,000–9,000 words."
+    max_words: null
+    open_access: false
+    url: "https://academic.oup.com/aristotelian"
+    sources: ["knowledge"]
+
+  - name: "Public Affairs Quarterly"
+    publisher: "University of Illinois Press"
+    issn: null
+    scope: "Philosophical analysis of public-policy and social issues."
+    typical_length: "Articles typically ~7,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.press.uillinois.edu/journals/paq.html"
+    sources: ["knowledge"]
+
+  - name: "Ratio"
+    publisher: "Wiley-Blackwell"
+    issn: null
+    scope: "General analytic philosophy across core areas."
+    typical_length: "Articles typically ~6,000–9,000 words."
+    max_words: null
+    open_access: false
+    url: "https://onlinelibrary.wiley.com/journal/14679329"
+    sources: ["knowledge"]
+
+  - name: "Religious Studies"
+    publisher: "Cambridge University Press"
+    issn: null
+    scope: "Philosophy of religion across the world's religious traditions."
+    typical_length: "Articles typically ~7,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.cambridge.org/core/journals/religious-studies"
+    sources: ["knowledge"]
+
+  - name: "Res Philosophica"
+    publisher: "Philosophy Documentation Center for Saint Louis University"
+    issn: null
+    scope: "General philosophy with thematic prize issues."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.pdcnet.org/resphilosophica"
+    sources: ["knowledge"]
+
+  - name: "Research in Phenomenology"
+    publisher: "Brill"
+    issn: null
+    scope: "Phenomenology and contemporary continental philosophy."
+    typical_length: "Articles typically ~7,000–11,000 words."
+    max_words: null
+    open_access: false
+    url: "https://brill.com/view/journals/rip/rip-overview.xml"
+    sources: ["knowledge"]
+
+  - name: "Review of Philosophy and Psychology"
+    publisher: "Springer"
+    issn: null
+    scope: "Philosophy of mind and cognitive science, empirically informed."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/13164"
+    sources: ["knowledge"]
+
+  - name: "Sartre Studies International"
+    publisher: "Berghahn Journals"
+    issn: null
+    scope: "Sartre's philosophy and existentialist and phenomenological thought."
+    typical_length: "Articles typically ~6,000–9,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.berghahnjournals.com/view/journals/sartre-studies/sartre-studies-overview.xml"
+    sources: ["knowledge"]
+
+  - name: "Social Philosophy and Policy"
+    publisher: "Cambridge University Press"
+    issn: null
+    scope: "Thematic issues in social, political, legal, and economic philosophy."
+    typical_length: "Invited articles typically ~9,000–13,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.cambridge.org/core/journals/social-philosophy-and-policy"
+    sources: ["knowledge"]
+
+  - name: "Social Theory and Practice"
+    publisher: "Philosophy Documentation Center for Florida State University"
+    issn: null
+    scope: "Social, political, legal, and moral philosophy."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.pdcnet.org/socialtheory"
+    sources: ["knowledge"]
+
+  - name: "Sophia"
+    publisher: "Springer"
+    issn: null
+    scope: "Philosophy of religion and cross-cultural philosophical theology."
+    typical_length: "Articles typically ~6,000–9,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/11841"
+    sources: ["knowledge"]
+
+  - name: "Studia Logica"
+    publisher: "Springer"
+    issn: null
+    scope: "Formal logic and its philosophical and mathematical applications."
+    typical_length: "Length appropriate to the technical result."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/11225"
+    sources: ["knowledge"]
+
+  - name: "Studies in History and Philosophy of Science"
+    publisher: "Elsevier"
+    issn: null
+    scope: "Integrated history and philosophy of science and the special sciences."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.sciencedirect.com/journal/studies-in-history-and-philosophy-of-science"
+    sources: ["knowledge"]
+
+  - name: "Synthese"
+    publisher: "Springer"
+    issn: null
+    scope: "Epistemology, methodology, philosophy of science, logic, and language."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/11229"
+    sources: ["knowledge"]
+
+  - name: "The British Journal for the History of Philosophy"
+    publisher: "Taylor & Francis (Routledge) for BSHP"
+    issn: null
+    scope: "History of philosophy from the ancient world to the recent past."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.tandfonline.com/journals/rbjh20"
+    sources: ["knowledge"]
+
+  - name: "The British Journal for the Philosophy of Science"
+    publisher: "University of Chicago Press for BSPS"
+    issn: null
+    scope: "Philosophy of science: general methodology and the special sciences."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.journals.uchicago.edu/journals/bjps"
+    sources: ["knowledge"]
+
+  - name: "The British Journal of Aesthetics"
+    publisher: "Oxford University Press for the British Society of Aesthetics"
+    issn: null
+    scope: "Philosophical aesthetics, art, and criticism."
+    typical_length: "Articles typically ~7,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://academic.oup.com/bjaesthetics"
+    sources: ["knowledge"]
+
+  - name: "The Journal of Ethics and Social Philosophy"
+    publisher: "JESP (open access)"
+    issn: null
+    scope: "Ethics, social, political, and legal philosophy."
+    typical_length: "No strict limit; full articles and shorter discussion notes."
+    max_words: null
+    open_access: true
+    url: "https://www.jesp.org"
+    sources: ["knowledge"]
+
+  - name: "The Journal of Philosophy"
+    publisher: "Journal of Philosophy, Inc. (Columbia University)"
+    issn: null
+    scope: "General philosophy; one of the discipline's most selective generalist journals."
+    typical_length: "Articles typically up to ~10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.journalofphilosophy.org"
+    sources: ["knowledge"]
+
+  - name: "The Journal of Speculative Philosophy"
+    publisher: "Penn State University Press"
+    issn: null
+    scope: "American philosophy, pragmatism, and continental thought."
+    typical_length: "Articles typically ~6,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.psupress.org/journals/jnls_jsp.html"
+    sources: ["knowledge"]
+
+  - name: "The Journal of Value Inquiry"
+    publisher: "Springer"
+    issn: null
+    scope: "Value theory broadly: ethics, aesthetics, social and political value."
+    typical_length: "Articles typically ~6,000–9,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/10790"
+    sources: ["knowledge"]
+
+  - name: "The Leibniz Review"
+    publisher: "Philosophy Documentation Center for the Leibniz Society of North America"
+    issn: null
+    scope: "Leibniz's philosophy, science, and mathematics."
+    typical_length: "Articles typically ~6,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.pdcnet.org/leibniz"
+    sources: ["knowledge"]
+
+  - name: "The Monist"
+    publisher: "Oxford University Press"
+    issn: null
+    scope: "Thematic issues, each devoted to a single philosophical topic across all areas."
+    typical_length: "Articles typically ~7,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://academic.oup.com/monist"
+    sources: ["knowledge"]
+
+  - name: "The Owl of Minerva"
+    publisher: "Philosophy Documentation Center for the Hegel Society of America"
+    issn: null
+    scope: "Hegel's philosophy and the German idealist tradition."
+    typical_length: "Articles typically ~6,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.pdcnet.org/owl"
+    sources: ["knowledge"]
+
+  - name: "The Philosophical Quarterly"
+    publisher: "Oxford University Press for the Scots Philosophical Association"
+    issn: null
+    scope: "General analytic philosophy across all core areas."
+    typical_length: "Articles typically ~8,000–12,000 words; shorter discussions accepted."
+    max_words: null
+    open_access: false
+    url: "https://academic.oup.com/pq"
+    sources: ["knowledge"]
+
+  - name: "The Philosophical Review"
+    publisher: "Duke University Press for Cornell University"
+    issn: null
+    scope: "General philosophy; among the most selective and prestigious journals."
+    typical_length: "No fixed limit; often substantial articles, ~10,000–15,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.dukeupress.edu/the-philosophical-review"
+    sources: ["knowledge"]
+
+  - name: "The Pluralist"
+    publisher: "University of Illinois Press for the Society for the Advancement of American Philosophy"
+    issn: null
+    scope: "American philosophy and pluralist approaches."
+    typical_length: "Articles typically ~6,000–9,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.press.uillinois.edu/journals/the_pluralist.html"
+    sources: ["knowledge"]
+
+  - name: "The Review of Metaphysics"
+    publisher: "Philosophy Education Society (Catholic University of America)"
+    issn: null
+    scope: "Metaphysics and systematic philosophy, historically informed."
+    typical_length: "Articles typically ~8,000–12,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.pdcnet.org/revmetaph"
+    sources: ["knowledge"]
+
+  - name: "The Review of Symbolic Logic"
+    publisher: "Cambridge University Press for the Association for Symbolic Logic"
+    issn: null
+    scope: "Logic in relation to philosophy, mathematics, and computation."
+    typical_length: "Length appropriate to the technical result."
+    max_words: null
+    open_access: false
+    url: "https://www.cambridge.org/core/journals/review-of-symbolic-logic"
+    sources: ["knowledge"]
+
+  - name: "The Southern Journal of Philosophy"
+    publisher: "Wiley-Blackwell for the University of Memphis"
+    issn: null
+    scope: "Analytic and continental philosophy across core areas."
+    typical_length: "Articles typically ~7,000–11,000 words."
+    max_words: null
+    open_access: false
+    url: "https://onlinelibrary.wiley.com/journal/20416962"
+    sources: ["knowledge"]
+
+  - name: "Theoretical Medicine and Bioethics"
+    publisher: "Springer"
+    issn: null
+    scope: "Philosophy of medicine, clinical ethics, and the foundations of bioethics."
+    typical_length: "Articles typically ~6,000–9,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/11017"
+    sources: ["knowledge"]
+
+  - name: "Theoria: A Swedish Journal of Philosophy"
+    publisher: "Wiley-Blackwell"
+    issn: null
+    scope: "General analytic philosophy across all core areas."
+    typical_length: "Articles typically ~6,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://onlinelibrary.wiley.com/journal/17552567"
+    sources: ["knowledge"]
+
+  - name: "Thought: A Journal of Philosophy"
+    publisher: "Wiley-Blackwell"
+    issn: null
+    scope: "Short papers in analytic philosophy of mind, language, logic, epistemology, and metaphysics."
+    typical_length: "Known for brevity: short papers, commonly capped near 4,500 words."
+    max_words: 4500
+    open_access: false
+    url: "https://onlinelibrary.wiley.com/journal/21611630"
+    sources: ["knowledge"]
+
+  - name: "Topoi: An International Review of Philosophy"
+    publisher: "Springer"
+    issn: null
+    scope: "Thematic issues across all areas of philosophy."
+    typical_length: "Articles typically ~6,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.springer.com/journal/11245"
+    sources: ["knowledge"]
+
+  - name: "Transactions of the Charles S. Peirce Society"
+    publisher: "Indiana University Press"
+    issn: null
+    scope: "American philosophy and pragmatism, centered on Peirce."
+    typical_length: "Articles typically ~7,000–11,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.iupress.org/journals/transactions-of-the-charles-s-peirce-society/"
+    sources: ["knowledge"]
+
+  - name: "Utilitas"
+    publisher: "Cambridge University Press"
+    issn: null
+    scope: "Utilitarian and consequentialist moral and political philosophy and their critics."
+    typical_length: "Articles typically ~7,000–10,000 words."
+    max_words: null
+    open_access: false
+    url: "https://www.cambridge.org/core/journals/utilitas"
+    sources: ["knowledge"]
