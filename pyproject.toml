@@ -34,9 +34,18 @@ embed = [
   "numpy>=1.26",
   "scikit-learn>=1.4",
 ]
+# Local semantic memory: sqlite-vec store + offline ONNX embeddings
+# (fastembed pulls onnxruntime, not torch) exposed to Claude Code over MCP.
+memory = [
+  "sqlite-vec>=0.1.3",
+  "numpy>=1.26",
+  "fastembed>=0.4",
+  "mcp>=1.2",
+]
 
 [project.scripts]
 cophilo = "cophilo.cli:app"
+cophilo-memory-mcp = "cophilo.memory.mcp_server:main"
 
 [build-system]
 requires = ["hatchling"]

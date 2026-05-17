@@ -28,6 +28,8 @@ class Config:
     normalized_dir: Path
     rendered_dir: Path
     db_path: Path
+    memory_db_path: Path
+    memory_embedding_model: str
     default_language: str
     anthropic_api_key: str | None
     openai_api_key: str | None
@@ -47,6 +49,9 @@ def get_config() -> Config:
     repo_root = _repo_root()
     data_dir = Path(os.environ.get("COPHILO_DATA_DIR", repo_root / "data")).resolve()
     db_path = Path(os.environ.get("COPHILO_DB_PATH", data_dir / "db" / "cophilo.sqlite")).resolve()
+    memory_db_path = Path(
+        os.environ.get("COPHILO_MEMORY_DB_PATH", data_dir / "db" / "memory.sqlite")
+    ).resolve()
 
     return Config(
         repo_root=repo_root,
@@ -55,6 +60,10 @@ def get_config() -> Config:
         normalized_dir=data_dir / "normalized",
         rendered_dir=data_dir / "rendered",
         db_path=db_path,
+        memory_db_path=memory_db_path,
+        memory_embedding_model=os.environ.get(
+            "COPHILO_MEMORY_EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5"
+        ),
         default_language=os.environ.get("COPHILO_DEFAULT_LANGUAGE", "en"),
         anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY") or None,
         openai_api_key=os.environ.get("OPENAI_API_KEY") or None,

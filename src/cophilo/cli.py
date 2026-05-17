@@ -270,5 +270,59 @@ def biblio_synthesize(
     )
 
 
+memory_app = typer.Typer(
+    add_completion=False,
+    help="Local semantic memory over the journals catalog (sqlite-vec).",
+    no_args_is_help=True,
+)
+app.add_typer(memory_app, name="memory")
+
+
+@memory_app.command("index")
+def memory_index() -> None:
+    """(Re)build the journals vector store from data/journals.yaml."""
+    from cophilo.memory import build
+
+    cfg = get_config()
+    typer.echo("Embedding journals catalog (first run downloads the model) …", err=True)
+    n = build(cfg)
+    typer.echo(f"Indexed {n} journals → {cfg.memory_db_path}")
+
+
+@memory_app.command("search")
+def memory_search(
+    query: str = typer.Argument(..., help="Topic / subfield / abstract"),
+    limit: int = typer.Option(8, "--limit", "-n", help="Max journals"),
+    open_access_only: bool = typer.Option(
+        False, "--oa", help="Restrict to open-access journals"
+    ),
+    as_json: bool = typer.Option(False, "--json", "-j", help="Emit JSON"),
+) -> None:
+    """Semantically search the journals catalog."""
+    from cophilo.memory import search as memory_search_fn
+
+    cfg = get_config()
+    results = memory_search_fn(
+        cfg, query, limit=limit, open_access_only=open_access_only
+    )
+    if as_json:
+        typer.echo(json.dumps(results, ensure_ascii=False, indent=2))
+        return
+    if not results:
+        typer.echo("No matches.")
+        return
+    typer.echo(f"{len(results)} match(es) for '{query}':\n")
+    for i, r in enumerate(results, start=1):
+        oa = " [OA]" if r["open_access"] else ""
+        typer.echo(f"[{i:>2}] {r['name']}{oa}  (score {r['score']})")
+        if r.get("scope"):
+            typer.echo(f"     {r['scope']}")
+        if r.get("typical_length"):
+            typer.echo(f"     length: {r['typical_length']}")
+        if r.get("url"):
+            typer.echo(f"     {r['url']}")
+        typer.echo("")
+
+
 if __name__ == "__main__":  # pragma: no cover
     app()

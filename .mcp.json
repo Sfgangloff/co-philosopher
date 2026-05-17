@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "cophilo-memory": {
+      "command": ".venv/bin/cophilo-memory-mcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}
