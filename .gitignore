@@ -25,12 +25,17 @@ htmlcov/
 # created by `cophilo backup`. Keep this list and backup.backup_paths() in
 # sync. `data/journals.yaml` is the one exception: a curated source list,
 # tracked here, the basis of the (gitignored, regenerable) memory index.
-data/corpus/         # notes, articles, drafts
-data/normalized/     # normalized text built from the corpus
-data/rendered/       # annotated md/html built from the corpus
-data/proposals/      # article proposals built from your notes
-data/db/*.sqlite     # extraction DB + memory index
-data/db/*.sqlite-*   # sqlite WAL/SHM sidecars
+# NOTE: .gitignore does not support inline `#` comments — a `#` only starts a
+# comment at the start of a line. Keep these patterns comment-free.
+data/corpus/
+data/normalized/
+data/rendered/
+data/proposals/
+data/db/*.sqlite
+data/db/*.sqlite-*
+
+# Stray scratch notes at repo root (personal, notes-derived — not tool code)
+example.txt
 
 # Editor
 .vscode/
