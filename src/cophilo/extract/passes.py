@@ -42,7 +42,8 @@ def _utcnow() -> str:
 class PassStats:
     document_id: int
     confirmed_mentions: int = 0
-    new_concept_proposals: int = 0
+    new_concept_proposals: int = 0  # total mentions queued (one per passage)
+    new_concept_labels: int = 0  # distinct labels among those mentions
     question_mentions: int = 0
     new_questions: int = 0
     cache_read_tokens: int = 0
@@ -257,6 +258,7 @@ def _run_concept_pass(
     stats.output_tokens += result.output_tokens
 
     parsed: ConceptPassResponse = result.parsed  # type: ignore[assignment]
+    distinct_proposal_labels: set[str] = set()
     for mention in parsed.mentions:
         if mention.confidence < 0.4:
             continue
@@ -271,12 +273,23 @@ def _run_concept_pass(
                 # so a human can decide whether the slug was a hallucination.
                 _enqueue_new_concept(conn, document_id=document_id, passage=passage, mention=mention)
                 stats.new_concept_proposals += 1
+                distinct_proposal_labels.add(
+                    mention.proposed_canonical_label_en
+                    or mention.proposed_canonical_label_fr
+                    or mention.slug
+                )
                 continue
             _persist_concept_mention(conn, concept_id=cid, passage=passage, mention=mention)
             stats.confirmed_mentions += 1
         else:
             _enqueue_new_concept(conn, document_id=document_id, passage=passage, mention=mention)
             stats.new_concept_proposals += 1
+            distinct_proposal_labels.add(
+                mention.proposed_canonical_label_en
+                or mention.proposed_canonical_label_fr
+                or "(unlabelled)"
+            )
+    stats.new_concept_labels += len(distinct_proposal_labels)
 
 
 def _run_question_pass(

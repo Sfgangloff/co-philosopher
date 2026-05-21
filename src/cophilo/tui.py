@@ -10,6 +10,7 @@ Everything here is offline: no LLM, no network.
 
 from __future__ import annotations
 
+import re
 import shlex
 import sys
 
@@ -63,13 +64,31 @@ def _commands(app: typer.Typer) -> list[tuple[str, click.Command]]:
     return out
 
 
-def _first_line(text: str | None) -> str:
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
+
+
+def _first_sentence(text: str | None, *, limit: int = 160) -> str:
+    """First *sentence* of a help string, not its first physical line.
+
+    Docstrings and option help are hard-wrapped, so taking the first
+    newline-delimited line cuts mid-sentence ("… creating it under"). We
+    instead un-wrap the leading paragraph (lines up to the first blank one)
+    and return its first sentence, capped so the catalogue stays compact.
+    """
     if not text:
         return ""
+    para: list[str] = []
     for line in text.strip().splitlines():
-        if line.strip():
-            return line.strip()
-    return ""
+        if not line.strip():
+            break
+        para.append(line.strip())
+    if not para:
+        return ""
+    collapsed = " ".join(para)
+    first = _SENTENCE_END.split(collapsed, 1)[0].strip()
+    if len(first) > limit:
+        first = first[: limit - 1].rstrip() + "…"
+    return first
 
 
 def render_help(app: typer.Typer) -> Group:
@@ -84,7 +103,7 @@ def render_help(app: typer.Typer) -> Group:
             f"cophilo {path}",
             style="bold magenta" if path == "backup" else "bold cyan",
         )
-        desc = _first_line(cmd.help)
+        desc = _first_sentence(cmd.help)
         if desc:
             header.append(f"  — {desc}", style="white")
         blocks.append(header)
@@ -98,7 +117,7 @@ def render_help(app: typer.Typer) -> Group:
                 flags = ", ".join(p.opts + p.secondary_opts)
             else:  # argument
                 flags = f"<{p.name}>"
-            help_text = _first_line(getattr(p, "help", None)) or (
+            help_text = _first_sentence(getattr(p, "help", None)) or (
                 "(required)" if getattr(p, "required", False) else ""
             )
             opts.add_row(f"  {flags}", help_text)

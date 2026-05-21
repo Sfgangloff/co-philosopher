@@ -130,10 +130,17 @@ def ingest_tree(
     picks up what is new. ``kind`` is inferred per file from the corpus
     subfolder unless ``kind_override`` forces it.
     """
+    # `cophilo backup` drops a marker README at the corpus root (it must live
+    # there so the backup git repo tracks it). It is backup metadata, not
+    # philosophy — never ingest it as an [article].
+    backup_readme = (cfg.corpus_dir / "README.md").resolve()
+
     outcomes: list[IngestOutcome] = []
     for f in iter_supported(root):
         if _is_within(f, cfg.corpus_drafts_dir):
             continue  # drafts are work-in-progress, not corpus material
+        if f.resolve() == backup_readme:
+            continue  # backup metadata, not corpus material
         kind = kind_override or infer_kind(cfg, f)
         resolved = str(f.resolve())
         with db.transaction(cfg) as conn:

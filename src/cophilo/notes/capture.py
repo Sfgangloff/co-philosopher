@@ -1,13 +1,17 @@
 """Offline, verbatim note capture.
 
-``cophilo dialog`` opens a REPL: every line you type is appended, exactly as
-written, to a Markdown file in ``data/corpus/notes/``. No LLM, no network —
-the only smarts are slugging the filename and offline language detection for
-the frontmatter. ``cophilo ingest`` later picks the notes up like any other
-corpus file.
+``cophilo dialog`` opens a REPL. You type a note over as many lines as you
+like — Enter is just a newline *within* the note — and a **blank line**
+(or ``/save``) commits it as one coherent unit to a Markdown file in
+``data/corpus/notes/``. One session is one file by default; ``/new`` starts a
+fresh file. This keeps notes substantial multi-paragraph units instead of a
+confetti of one-line files, so ``extract``/``propose`` reason over real
+arguments. No LLM, no network — the only smarts are slugging the filename and
+offline language detection for the frontmatter. ``cophilo ingest`` later
+picks the notes up like any other corpus file.
 
-Session commands: ``/done`` end · ``/new`` start a fresh note file ·
-``/cancel`` discard the current note file · ``/help``.
+Session commands: ``/save`` commit the note · ``/done`` end · ``/new`` start
+a fresh note file · ``/cancel`` discard the in-progress note · ``/help``.
 """
 
 from __future__ import annotations
@@ -95,8 +99,13 @@ class DialogSession:
             return "saved", path
 
         path = self.current_path
-        with path.open("a", encoding="utf-8") as fh:
-            fh.write("\n\n" + text.rstrip() + "\n")
+        # Exactly one blank line between notes. Naively prepending "\n\n" stacks
+        # on top of the previous write's trailing newline, leaving \n\n\n runs.
+        existing = path.read_text(encoding="utf-8")
+        path.write_text(
+            existing.rstrip("\n") + "\n\n" + text.rstrip() + "\n",
+            encoding="utf-8",
+        )
         return "appended", path
 
     def summary(self) -> str:
@@ -111,16 +120,22 @@ class DialogSession:
 
 
 _BANNER = (
-    "cophilo dialog — type a note and press Enter to save it.\n"
-    "To leave notes mode: /done  (or Ctrl-D / Ctrl-C — your work is already saved).\n"
-    "Other commands: /new (start a new note)  /cancel (discard current)  /help"
+    "cophilo dialog — write a note over as many lines as you want.\n"
+    "A BLANK LINE (or /save) commits it as one note. Enter alone is just a "
+    "newline within the note.\n"
+    "To leave: /done  (a bare `exit` / `quit` between notes also works; "
+    "Ctrl-D / Ctrl-C — a pending note is saved first).\n"
+    "Other commands: /new (start a new note file)  /cancel (drop the "
+    "in-progress note)  /help"
 )
 _HELP = (
-    "/done    finish and leave notes mode (back to the cophilo prompt)\n"
-    "/new     start a new note file (next line begins a fresh note)\n"
-    "/cancel  delete the current note file and start over\n"
+    "(blank line)  commit the note you've been typing\n"
+    "/save    commit the note you've been typing (same as a blank line)\n"
+    "/done    finish and leave notes mode (commits any pending note first)\n"
+    "/new     commit the pending note, then start a new note file\n"
+    "/cancel  discard the in-progress note (unsaved lines or current file)\n"
     "/help    show this help\n"
-    "Ctrl-D or Ctrl-C also leaves — every saved note is kept."
+    "Ctrl-D or Ctrl-C also leaves — a pending note is committed first."
 )
 
 
@@ -140,36 +155,82 @@ def run_dialog(
     if topic:
         echo(f"(topic: {topic})")
 
+    buffer: list[str] = []
+
+    def commit() -> None:
+        """Flush the buffered lines as one coherent note."""
+        if not buffer:
+            return
+        note = "\n".join(buffer).strip()
+        buffer.clear()
+        if not note:
+            return
+        status, path = session.add(note)
+        echo(f"  ↳ {status} {path.name}")
+
     while True:
         try:
-            line = input_fn("note> ")
+            line = input_fn("  … " if buffer else "note> ")
         except (EOFError, KeyboardInterrupt):
             echo("")
             break
 
-        text = line.strip()
-        if not text:
+        # A blank line commits the note you've been writing.
+        if not line.strip():
+            commit()
             continue
 
+        text = line.strip()
         if text.startswith("/"):
             cmd = text.split()[0].lower()
             if cmd in {"/done", "/quit", "/exit"}:
                 break
-            if cmd == "/new":
+            if cmd == "/save":
+                if buffer:
+                    commit()
+                else:
+                    echo("  ↳ nothing to save yet")
+            elif cmd == "/new":
+                commit()  # don't lose a pending note at the boundary
                 session.new_note()
-                echo("  ↳ new note started")
+                echo("  ↳ new note file started")
             elif cmd == "/cancel":
-                path = session.cancel()
-                echo(f"  ↳ discarded {path.name}" if path else "  ↳ nothing to discard")
+                if buffer:
+                    n = len(buffer)
+                    buffer.clear()
+                    echo(f"  ↳ discarded {n} unsaved line(s)")
+                else:
+                    path = session.cancel()
+                    echo(
+                        f"  ↳ discarded {path.name}"
+                        if path
+                        else "  ↳ nothing to discard"
+                    )
             elif cmd == "/help":
                 echo(_HELP)
             else:
                 echo(f"  ↳ unknown command {cmd!r} (try /help)")
             continue
 
-        status, path = session.add(text)
-        echo(f"  ↳ {status} {path.name}")
+        # The outer prompt uses `exit`; here the leave command is `/done`. A
+        # bare single-word `exit`/`quit`/`done` is a near-certain muscle-memory
+        # mismatch — silently committing it as a note ends every first-time
+        # session with a stray "exit" paragraph. If the user is between notes
+        # we leave; if they're mid-note, we ask rather than guess.
+        if text.lower() in {"exit", "quit", "done"}:
+            if not buffer:
+                echo(f"  ↳ '{text}' alone — leaving (the in-dialog command is /done).")
+                break
+            echo(
+                f"  ↳ '{text}' alone — type /done to leave, /save to commit, "
+                "or keep writing to make it part of the note."
+            )
+            continue
 
+        # Otherwise this line is part of the note being written.
+        buffer.append(line.rstrip())
+
+    commit()  # a note in progress at exit is kept, not lost
     echo(session.summary())
     echo("← left notes mode (back at the cophilo prompt).")
     return session

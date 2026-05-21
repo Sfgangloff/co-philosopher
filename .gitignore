@@ -31,11 +31,13 @@ data/corpus/
 data/normalized/
 data/rendered/
 data/proposals/
+data/syntheses/
 data/db/*.sqlite
 data/db/*.sqlite-*
+data/*.md
 
 # Stray scratch notes at repo root (personal, notes-derived — not tool code)
-example.txt
+example*.txt
 
 # Editor
 .vscode/

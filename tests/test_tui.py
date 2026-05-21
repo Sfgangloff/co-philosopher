@@ -13,7 +13,7 @@ from typer.testing import CliRunner
 
 from cophilo import __version__
 from cophilo.cli import app
-from cophilo.tui import render_help, run_home
+from cophilo.tui import _first_sentence, render_help, run_home
 
 runner = CliRunner()
 
@@ -44,6 +44,28 @@ def test_help_catalogue_lists_commands_and_options():
     assert "--topic" in res.output
     assert "--limit" in res.output
     assert "<folder>" in res.output  # draft's positional argument
+
+
+def test_first_sentence_unwraps_paragraph_not_physical_line():
+    # A hard-wrapped two-line docstring must not be cut at the newline.
+    doc = (
+        "Back up data/corpus to a separate private git repo, creating it under\n"
+        "your own GitHub account on first run. Fork-friendly: nothing hard-coded."
+    )
+    s = _first_sentence(doc)
+    assert s == (
+        "Back up data/corpus to a separate private git repo, creating it "
+        "under your own GitHub account on first run."
+    )
+    assert not s.endswith("under")  # the old mid-sentence truncation is gone
+    assert _first_sentence(None) == "" and _first_sentence("  ") == ""
+
+
+def test_help_catalogue_descriptions_are_whole_sentences():
+    res = runner.invoke(app, ["help"])
+    assert res.exit_code == 0, res.output
+    # `backup`'s description reaches its first full stop, not the line break.
+    assert "on first run." in res.output
 
 
 def test_render_help_excludes_help_itself():

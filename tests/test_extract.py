@@ -207,6 +207,7 @@ def test_extract_end_to_end(isolated_data_dir):
 
     assert stats.confirmed_mentions == 1
     assert stats.new_concept_proposals == 1
+    assert stats.new_concept_labels == 1  # one distinct label among the proposals
     assert stats.question_mentions == 1
     assert stats.new_questions == 1
     # both passes ran
@@ -298,6 +299,49 @@ def test_extract_resolves_merged_concept(isolated_data_dir):
         assert rows[0][0] == target  # routed through merge
 
 
+def test_extract_stats_track_mentions_and_distinct_labels(isolated_data_dir):
+    """§4.3 — extract logs `N proposals queued`; concepts --pending grouped by
+    label shows fewer rows. The two counts mean different things; stats must
+    expose both so the CLI can disambiguate."""
+    cfg = isolated_data_dir
+    body = (
+        "# T\n\n"
+        "First passage talks about funesian exocortex.\n\n"
+        "## S\n\n"
+        "Second passage also about funesian exocortex.\n\n"
+        "Third passage introduces a separate idea: plastic forgetting.\n"
+    )
+    doc_id = _seed_normalized_doc(cfg, title="T", language="en", body=body)
+    fake = FakeClient({
+        ConceptPassResponse: ConceptPassResponse(mentions=[
+            ConceptMention(
+                passage_ord=1, is_new=True,
+                proposed_canonical_label_en="Funesian exocortex",
+                proposed_description="A total-capture external memory.",
+                role="define", span_quote="funesian exocortex", confidence=0.9,
+            ),
+            ConceptMention(
+                passage_ord=2, is_new=True,
+                proposed_canonical_label_en="Funesian exocortex",  # same label, different passage
+                proposed_description="A total-capture external memory.",
+                role="use", span_quote="funesian exocortex", confidence=0.9,
+            ),
+            ConceptMention(
+                passage_ord=3, is_new=True,
+                proposed_canonical_label_en="Plastic forgetting",
+                proposed_description="Nietzsche's active forgetting.",
+                role="introduce", span_quote="plastic forgetting", confidence=0.9,
+            ),
+        ]),
+        QuestionPassResponse: QuestionPassResponse(questions=[]),
+    })
+    stats = extract_document(cfg, doc_id, client=fake)
+    # Three proposal mentions queued (one per passage) but only two distinct
+    # labels — the philosopher's "9 vs 7" discrepancy in miniature.
+    assert stats.new_concept_proposals == 3
+    assert stats.new_concept_labels == 2
+
+
 def test_unknown_slug_falls_through_to_review(isolated_data_dir):
     """A model-claimed slug that doesn't exist should not silently drop;
     it should land in the review queue so a human can decide."""
@@ -325,3 +369,186 @@ def test_unknown_slug_falls_through_to_review(isolated_data_dir):
     with sqlite3.connect(cfg.db_path) as conn:
         n = conn.execute("SELECT COUNT(*) FROM review_queue WHERE kind='new_concept';").fetchone()[0]
         assert n == 1
+
+
+# --- CLI: extract guards (B2/B4) and concepts/questions (P3) -------------
+
+from typer.testing import CliRunner  # noqa: E402
+
+import cophilo.cli as cli_mod  # noqa: E402
+from cophilo.cli import app  # noqa: E402
+
+_runner = CliRunner()
+
+
+def _set_status(cfg, doc_id: int, status: str) -> None:
+    with sqlite3.connect(cfg.db_path) as conn:
+        conn.execute("UPDATE documents SET status=? WHERE id=?;", (status, doc_id))
+        conn.commit()
+
+
+def test_cli_extract_skips_extracted_unless_force(isolated_data_dir, monkeypatch):
+    cfg = isolated_data_dir
+    doc_id = _seed_normalized_doc(cfg, title="T", language="en", body="# T\n\nText.\n")
+    _set_status(cfg, doc_id, "extracted")
+
+    from cophilo.extract.passes import PassStats
+
+    calls: list[int] = []
+
+    def stub(c, did, **kw):
+        calls.append(did)
+        return PassStats(document_id=did)
+
+    monkeypatch.setattr(cli_mod, "extract_document", stub)
+
+    res = _runner.invoke(app, ["extract", "--doc", str(doc_id)])
+    assert res.exit_code == 0, res.output
+    assert "already extracted" in res.output
+    assert calls == []  # no billed call
+
+    res = _runner.invoke(app, ["extract", "--doc", str(doc_id), "--force"])
+    assert res.exit_code == 0, res.output
+    assert calls == [doc_id]  # --force re-runs
+
+
+def test_cli_extract_unknown_doc_is_clean_error(isolated_data_dir):
+    res = _runner.invoke(app, ["extract", "--doc", "999"])
+    assert res.exit_code == 1
+    assert "No document #999" in res.output
+    assert "Traceback" not in res.output  # no raw traceback leaks
+
+
+def test_cli_concepts_and_questions(isolated_data_dir):
+    cfg = isolated_data_dir
+    doc_id = _seed_normalized_doc(
+        cfg, title="On Boredom", language="en", body="# B\n\nBoredom is intentional.\n"
+    )
+    cid = _seed_concept(
+        cfg,
+        slug="boredom",
+        label_en="boredom",
+        label_fr="ennui",
+        description="An epistemic mood.",
+    )
+    with sqlite3.connect(cfg.db_path) as conn:
+        conn.execute(
+            "INSERT INTO passages (document_id, ord, char_start, char_end, "
+            "section_path, text) VALUES (?, 1, 0, 5, '', 'Boredom is intentional.');",
+            (doc_id,),
+        )
+        pid = conn.execute(
+            "SELECT id FROM passages WHERE document_id=?;", (doc_id,)
+        ).fetchone()[0]
+        conn.execute(
+            "INSERT INTO concept_mentions (concept_id, passage_id, role, confidence) "
+            "VALUES (?, ?, 'use', 0.9);",
+            (cid, pid),
+        )
+        conn.execute(
+            "INSERT INTO questions (label, description, status, first_raised_passage_id) "
+            "VALUES ('Is boredom intentional?', 'A question about moods.', 'open', ?);",
+            (pid,),
+        )
+        qid = conn.execute("SELECT id FROM questions;").fetchone()[0]
+        conn.execute(
+            "INSERT INTO question_mentions (question_id, passage_id, role) "
+            "VALUES (?, ?, 'raise');",
+            (qid, pid),
+        )
+        conn.commit()
+
+    res = _runner.invoke(app, ["concepts"])
+    assert res.exit_code == 0, res.output
+    assert "boredom" in res.output and "1×" in res.output
+
+    res = _runner.invoke(app, ["questions", "--doc", str(doc_id)])
+    assert res.exit_code == 0, res.output
+    assert "Is boredom intentional?" in res.output
+
+    res = _runner.invoke(app, ["concepts", "--json"])
+    assert res.exit_code == 0
+    assert '"confirmed"' in res.output
+
+
+def test_cli_concepts_json_uniform_name_key(isolated_data_dir):
+    """§4.2 — `concepts --json` must expose a `name` key on BOTH confirmed
+    and proposed items so integrators (the --json-for-tooling promise) can
+    iterate without branching."""
+    import json
+    cfg = isolated_data_dir
+    doc_id = _seed_normalized_doc(
+        cfg, title="On Boredom", language="en", body="# B\n\nBoredom is intentional.\n"
+    )
+    cid = _seed_concept(
+        cfg,
+        slug="boredom",
+        label_en="boredom",
+        label_fr="ennui",
+        description="An epistemic mood.",
+    )
+    with sqlite3.connect(cfg.db_path) as conn:
+        conn.execute(
+            "INSERT INTO passages (document_id, ord, char_start, char_end, "
+            "section_path, text) VALUES (?, 1, 0, 5, '', 'Boredom is intentional.');",
+            (doc_id,),
+        )
+        pid = conn.execute(
+            "SELECT id FROM passages WHERE document_id=?;", (doc_id,)
+        ).fetchone()[0]
+        conn.execute(
+            "INSERT INTO concept_mentions (concept_id, passage_id, role, confidence) "
+            "VALUES (?, ?, 'use', 0.9);",
+            (cid, pid),
+        )
+        # Two proposed-new-concept review_queue entries for the same label —
+        # so the grouped output should have count=2 for one unique label.
+        for _ in range(2):
+            conn.execute(
+                "INSERT INTO review_queue (kind, payload_json, created_at) "
+                "VALUES ('new_concept', ?, '2026-05-12T00:00:00+00:00');",
+                (json.dumps({
+                    "document_id": doc_id,
+                    "passage_id": pid,
+                    "proposed_canonical_label_en": "intentional mood",
+                    "proposed_canonical_label_fr": "humeur intentionnelle",
+                    "proposed_description": "A mood directed at the world.",
+                }),),
+            )
+        # A third proposal with a different label to keep the multi-label shape.
+        conn.execute(
+            "INSERT INTO review_queue (kind, payload_json, created_at) "
+            "VALUES ('new_concept', ?, '2026-05-12T00:00:00+00:00');",
+            (json.dumps({
+                "document_id": doc_id,
+                "passage_id": pid,
+                "proposed_canonical_label_en": "another concept",
+                "proposed_description": "",
+            }),),
+        )
+        conn.commit()
+
+    res = _runner.invoke(app, ["concepts", "--json"])
+    assert res.exit_code == 0, res.output
+    payload = json.loads(res.output)
+
+    # Both lists exist.
+    assert "confirmed" in payload and "proposed" in payload
+    assert len(payload["confirmed"]) == 1
+    assert len(payload["proposed"]) == 2  # two distinct labels
+
+    # Uniform `name` key across both.
+    for item in payload["confirmed"]:
+        assert "name" in item and item["name"]
+    for item in payload["proposed"]:
+        assert "name" in item and item["name"]
+        # Back-compat alias kept:
+        assert item["label"] == item["name"]
+        # Slug present and stable.
+        assert item["slug"] and " " not in item["slug"]
+        assert isinstance(item["count"], int)
+
+    # The dual-mention proposal is grouped (count=2):
+    counts_by_name = {p["name"]: p["count"] for p in payload["proposed"]}
+    assert counts_by_name["intentional mood"] == 2
+    assert counts_by_name["another concept"] == 1

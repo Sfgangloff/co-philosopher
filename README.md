@@ -61,13 +61,18 @@ version control in a separate private repository (see below). The only
 ## Notes → draft workflow
 
 ```bash
-cophilo dialog --topic "free will"   # offline REPL; each line saved verbatim
-                                     #   to data/corpus/notes/ as Markdown
+cophilo dialog --topic "free will"   # offline REPL; write a note over many
+                                     #   lines, a BLANK LINE commits it as one
+                                     #   coherent note (not one file per line)
 cophilo ingest                       # no path → ingest data/corpus: kind is
                                      #   inferred per subfolder, drafts/ is
                                      #   skipped, only new files are touched
 cophilo extract                      # Claude pulls concepts + questions;
-                                     #   new concepts go to a review queue
+                                     #   already-extracted docs are skipped
+                                     #   (--force to re-run); new concepts
+                                     #   go to a review queue
+cophilo concepts                     # see what extract found (confirmed +
+cophilo questions                    #   queued proposals; --doc N, --json)
 cophilo propose                      # Claude finds a coherent article in your
                                      #   notes; on accept it creates
                                      #   drafts/<slug>/ and MOVES those notes in
@@ -78,6 +83,36 @@ cophilo draft drafts/<slug>          # pull a PhilArchive bibliography from the
 `dialog` is fully offline (no LLM, no network). `propose`/`draft`/`extract`
 use the configured Claude backend (the local CLI by default — no API key).
 PDF / DOCX / LaTeX / Markdown are all ingestable.
+
+## Critical review
+
+Have Claude read one file and write an honest, line-by-line critique **into
+the file itself** — unsupported premises, equivocal terms, gaps, missed
+objections, and (sparingly) what genuinely works:
+
+```bash
+cophilo review drafts/free-will/article.tex   # writes comments in place
+cophilo review notes/sketch.md --dry-run       # print annotated, don't write
+cophilo review article.tex --clear             # remove the comments (no LLM)
+cophilo review paper.tex --format sidecar      # write paper.tex.review.md;
+                                               #   never touch the source
+cophilo review paper.tex --only weakness,question  # keep just those kinds
+```
+
+Comments are inserted on their own lines, immediately before the line they
+discuss, in the file's native comment syntax — `% …` for LaTeX, an invisible
+`<!-- … -->` for Markdown/HTML, `# …` for scripts, a loud `>>> …` marker for
+plain text — so the document still compiles/renders unchanged and the remarks
+never look like prose. Every line carries a `cophilo-review` sentinel, which
+makes the pass **reversible** (`--clear`) and **idempotent**: re-running
+strips the previous review before writing a fresh one, and your original
+lines are never modified. Each comment also carries a short verbatim
+**anchor** quote, so if you edit the file and re-review, a remark re-finds
+its line instead of landing on whatever now sits at the old line number.
+`--format sidecar` keeps every mark out of the source (a shared `.tex`);
+`--only <kinds>` filters the pass. The review language is auto-detected
+(override with `--lang en|fr`). Uses the configured Claude backend (local
+CLI by default).
 
 ## Backup (private)
 
@@ -156,5 +191,6 @@ from the repo root.
 In place: one-step `setup.sh`, M1 (ingest, incl. Markdown), M2 (extraction),
 the M7 bibliography slice (PhilArchive search + topic synthesis), a local
 semantic-memory MCP server, the notes → draft workflow (`dialog` /
-corpus-default `ingest` / `propose` / `draft`), the `cophilo` home screen +
-`help`, and private `backup` of the corpus and everything derived from it.
+corpus-default `ingest` / `propose` / `draft`), critical `review` of a single
+file, the `cophilo` home screen + `help`, and private `backup` of the corpus
+and everything derived from it.

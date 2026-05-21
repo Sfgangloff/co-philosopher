@@ -15,7 +15,7 @@ import pytest
 
 from cophilo.config import ensure_dirs, get_config
 from cophilo.db import models as db
-from cophilo.ingest.dispatch import ingest_file
+from cophilo.ingest.dispatch import ingest_file, ingest_tree
 
 
 @pytest.fixture(autouse=True)
@@ -150,3 +150,18 @@ def test_reingest_is_idempotent(isolated_data_dir, tmp_path):
     with sqlite3.connect(cfg.db_path) as conn:
         n = conn.execute("SELECT COUNT(*) FROM documents;").fetchone()[0]
     assert n == 1
+
+
+def test_ingest_tree_skips_backup_readme(isolated_data_dir):
+    cfg = isolated_data_dir
+    # `cophilo backup` drops this marker at the corpus root.
+    (cfg.corpus_dir / "README.md").write_text(
+        "# co-philosopher backup\n\nAutomated private backup.\n", encoding="utf-8"
+    )
+    real = cfg.corpus_notes_dir / "thought.md"
+    real.write_text("Boredom has an intentional structure.\n", encoding="utf-8")
+
+    outcomes = ingest_tree(cfg, cfg.corpus_dir)
+    paths = {o.path.name for o in outcomes}
+    assert "thought.md" in paths
+    assert "README.md" not in paths  # backup metadata, not an [article]

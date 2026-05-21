@@ -156,6 +156,7 @@ def backup_paths(cfg: Config) -> list[str]:
         cfg.normalized_dir,
         cfg.rendered_dir,
         cfg.data_dir / "proposals",
+        cfg.syntheses_dir,
         cfg.db_path,  # the extraction DB; NOT memory_db_path
     ]
     out: list[str] = []

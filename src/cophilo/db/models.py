@@ -126,6 +126,122 @@ def update_document_source(
     )
 
 
+# --- Concepts & questions (the extracted graph, for the CLI) ---------------
+
+
+def list_concepts(
+    conn: sqlite3.Connection,
+    *,
+    document_id: int | None = None,
+    status: str = "confirmed",
+) -> list[sqlite3.Row]:
+    """Confirmed concepts with their mention counts, most-cited first.
+
+    With ``document_id``, restrict to concepts mentioned in that document.
+    """
+    if document_id is None:
+        return conn.execute(
+            """
+            SELECT c.id, c.slug, c.canonical_label_en, c.canonical_label_fr,
+                   c.kind, c.description, COUNT(cm.id) AS mentions
+            FROM concepts c
+            LEFT JOIN concept_mentions cm ON cm.concept_id = c.id
+            WHERE c.status = ?
+            GROUP BY c.id
+            ORDER BY mentions DESC, c.slug;
+            """,
+            (status,),
+        ).fetchall()
+    return conn.execute(
+        """
+        SELECT c.id, c.slug, c.canonical_label_en, c.canonical_label_fr,
+               c.kind, c.description, COUNT(cm.id) AS mentions
+        FROM concepts c
+        JOIN concept_mentions cm ON cm.concept_id = c.id
+        JOIN passages p ON p.id = cm.passage_id
+        WHERE c.status = ? AND p.document_id = ?
+        GROUP BY c.id
+        ORDER BY mentions DESC, c.slug;
+        """,
+        (status, document_id),
+    ).fetchall()
+
+
+def list_concept_proposals(
+    conn: sqlite3.Connection, *, document_id: int | None = None
+) -> list[dict[str, Any]]:
+    """Pending new-concept proposals from the review queue, grouped by label.
+
+    Fresh extraction confirms nothing on its own — it *queues* proposals — so
+    this is where the payoff of ``extract`` actually shows up.
+    """
+    rows = conn.execute(
+        "SELECT payload_json FROM review_queue "
+        "WHERE kind = 'new_concept' AND status = 'pending' ORDER BY id;"
+    ).fetchall()
+    # Lazy import: slugify is already a project-wide dependency (notes/draft),
+    # but we keep the import local so this module stays small.
+    from slugify import slugify
+
+    agg: dict[str, dict[str, Any]] = {}
+    for r in rows:
+        payload = json.loads(r["payload_json"])
+        if document_id is not None and payload.get("document_id") != document_id:
+            continue
+        label = (
+            payload.get("proposed_canonical_label_en")
+            or payload.get("proposed_canonical_label_fr")
+            or "(unlabelled)"
+        )
+        slot = agg.setdefault(
+            label,
+            {
+                # `name` matches the primary identifier used by confirmed
+                # concepts (`canonical_label_en`) so JSON consumers (the
+                # philosopher's "--json for tooling / Claude Code") can rely
+                # on one key across both kinds. `label` is kept as an alias
+                # for back-compat with any existing scripts.
+                "name": label,
+                "label": label,
+                "slug": slugify(label, max_length=80) or "concept",
+                "description": payload.get("proposed_description") or "",
+                "count": 0,
+            },
+        )
+        slot["count"] += 1
+    return sorted(agg.values(), key=lambda d: (-d["count"], d["name"]))
+
+
+def list_questions(
+    conn: sqlite3.Connection, *, document_id: int | None = None
+) -> list[sqlite3.Row]:
+    """Open/answered questions with mention counts, most-cited first."""
+    if document_id is None:
+        return conn.execute(
+            """
+            SELECT q.id, q.label, q.description, q.status,
+                   COUNT(qm.passage_id) AS mentions
+            FROM questions q
+            LEFT JOIN question_mentions qm ON qm.question_id = q.id
+            GROUP BY q.id
+            ORDER BY mentions DESC, q.id;
+            """
+        ).fetchall()
+    return conn.execute(
+        """
+        SELECT q.id, q.label, q.description, q.status,
+               COUNT(qm.passage_id) AS mentions
+        FROM questions q
+        JOIN question_mentions qm ON qm.question_id = q.id
+        JOIN passages p ON p.id = qm.passage_id
+        WHERE p.document_id = ?
+        GROUP BY q.id
+        ORDER BY mentions DESC, q.id;
+        """,
+        (document_id,),
+    ).fetchall()
+
+
 # --- Bibliography ----------------------------------------------------------
 
 

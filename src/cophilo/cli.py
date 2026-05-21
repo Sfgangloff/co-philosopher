@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import shutil
 import sys
+import textwrap
 from pathlib import Path
 
 import typer
@@ -32,7 +34,11 @@ from cophilo.review import (
 
 app = typer.Typer(
     add_completion=False,
-    help="Co-philosopher: interactive philosophy assistant.",
+    help=(
+        "Co-philosopher: interactive philosophy assistant. "
+        "Run `cophilo help` for the full, readable catalogue of commands, "
+        "options, and descriptions (richer than this --help)."
+    ),
 )
 
 
@@ -155,32 +161,62 @@ def extract(
         "--passes",
         help="Comma-separated list of passes to run (concepts, questions)",
     ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Re-extract even if already extracted (this re-bills Claude)",
+    ),
 ) -> None:
-    """Run Claude extraction passes for one or all ingested documents."""
+    """Run Claude extraction passes for one or all ingested documents.
+
+    Already-extracted documents are skipped (so a bare `cophilo extract`
+    never silently re-bills); pass --force, or name one with --doc --force,
+    to deliberately re-run."""
     cfg = get_config()
     db.init_db(cfg)
     pass_tuple = tuple(p.strip() for p in passes.split(",") if p.strip())
 
     with db.transaction(cfg) as conn:
         if doc is not None:
+            row = conn.execute(
+                "SELECT id, status FROM documents WHERE id = ?;", (doc,)
+            ).fetchone()
+            if row is None:
+                typer.echo(
+                    f"No document #{doc}. Run `cophilo list` to see ingested docs.",
+                    err=True,
+                )
+                raise typer.Exit(code=1)
+            if row["status"] == "extracted" and not force:
+                typer.echo(
+                    f"Document #{doc:04d} is already extracted. "
+                    f"Pass --force to re-run (this re-bills Claude)."
+                )
+                return
             ids = [doc]
         else:
+            clause = "" if force else " WHERE status = 'ingested'"
             rows = conn.execute(
-                "SELECT id FROM documents WHERE status = 'ingested' ORDER BY id;"
+                f"SELECT id FROM documents{clause} ORDER BY id;"
             ).fetchall()
             ids = [int(r["id"]) for r in rows]
 
     if not ids:
-        typer.echo("Nothing to extract.")
+        typer.echo("Nothing to extract (all ingested docs are already extracted).")
         return
 
     total = len(ids)
     for i, did in enumerate(ids, start=1):
         typer.echo(f"[{i}/{total}] extracting document #{did:04d}…")
-        stats = extract_document(cfg, did, passes=pass_tuple)
+        try:
+            stats = extract_document(cfg, did, passes=pass_tuple)
+        except ValueError as e:
+            typer.echo(f"  skipped #{did:04d}: {e}", err=True)
+            continue
         typer.echo(
             f"  concepts: +{stats.confirmed_mentions} mentions, "
-            f"{stats.new_concept_proposals} new-concept proposals queued; "
+            f"{stats.new_concept_proposals} new-concept proposal(s) queued "
+            f"(across {stats.new_concept_labels} distinct label(s)); "
             f"questions: +{stats.question_mentions} mentions, "
             f"{stats.new_questions} new questions"
         )
@@ -210,6 +246,100 @@ def list_docs(
 
 
 @app.command()
+def concepts(
+    doc: int = typer.Option(None, "--doc", "-d", help="Only concepts mentioned in this document"),
+    pending: bool = typer.Option(
+        True,
+        "--pending/--no-pending",
+        help="Also show new-concept proposals queued by `extract` (not yet confirmed)",
+    ),
+    as_json: bool = typer.Option(False, "--json", "-j", help="Emit JSON"),
+) -> None:
+    """Show the concepts `extract` found — confirmed ones with mention
+    counts, plus the new-concept proposals it queued. The extracted graph,
+    without opening SQLite."""
+    cfg = get_config()
+    db.init_db(cfg)
+    with db.transaction(cfg) as conn:
+        confirmed = db.list_concepts(conn, document_id=doc)
+        proposals = db.list_concept_proposals(conn, document_id=doc) if pending else []
+
+    if as_json:
+        # Expose a single primary identifier `name` for both confirmed and
+        # proposed items so external tooling (--json was explicitly sold for
+        # this) can iterate without branching on shape.
+        confirmed_out = []
+        for r in confirmed:
+            d = dict(r)
+            d["name"] = (
+                d.get("canonical_label_en")
+                or d.get("canonical_label_fr")
+                or d.get("slug")
+            )
+            confirmed_out.append(d)
+        typer.echo(
+            json.dumps(
+                {"confirmed": confirmed_out, "proposed": proposals},
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return
+
+    scope = f" in document #{doc:04d}" if doc is not None else ""
+    if not confirmed and not proposals:
+        typer.echo(
+            f"No concepts{scope} yet. Run `cophilo extract` first "
+            "(then confirm proposals to promote them)."
+        )
+        return
+    if confirmed:
+        typer.echo(f"Confirmed concepts{scope} ({len(confirmed)}):\n")
+        for r in confirmed:
+            label = r["canonical_label_en"] or r["canonical_label_fr"] or r["slug"]
+            typer.echo(f"  [{r['mentions']:>3}×] {label}  ({r['kind']}, {r['slug']})")
+            if r["description"]:
+                _wrap_field("      ", r["description"].strip())
+    if proposals:
+        total_mentions = sum(p["count"] for p in proposals)
+        typer.echo(
+            f"\nProposed (queued by extract, awaiting confirmation) "
+            f"({len(proposals)} distinct label(s), {total_mentions} mention(s)):\n"
+        )
+        for p in proposals:
+            typer.echo(f"  [{p['count']:>3}×] {p['name']}")
+            if p["description"]:
+                _wrap_field("      ", p["description"].strip())
+
+
+@app.command()
+def questions(
+    doc: int = typer.Option(None, "--doc", "-d", help="Only questions raised in this document"),
+    as_json: bool = typer.Option(False, "--json", "-j", help="Emit JSON"),
+) -> None:
+    """Show the open questions `extract` surfaced, most-raised first."""
+    cfg = get_config()
+    db.init_db(cfg)
+    with db.transaction(cfg) as conn:
+        rows = db.list_questions(conn, document_id=doc)
+
+    if as_json:
+        typer.echo(json.dumps([dict(r) for r in rows], ensure_ascii=False, indent=2))
+        return
+
+    scope = f" in document #{doc:04d}" if doc is not None else ""
+    if not rows:
+        typer.echo(f"No questions{scope} yet. Run `cophilo extract` first.")
+        return
+    typer.echo(f"Questions{scope} ({len(rows)}):\n")
+    for r in rows:
+        flag = "" if r["status"] == "open" else f" [{r['status']}]"
+        typer.echo(f"  [{r['mentions']:>3}×]{flag} {r['label']}")
+        if r["description"]:
+            _wrap_field("      ", r["description"].strip())
+
+
+@app.command()
 def dialog(
     topic: str = typer.Option(None, "--topic", "-t", help="Group this session under a topic (used in the filename/title)"),
     lang: str = typer.Option(None, "--lang", help="Force note language: en | fr (default: auto-detect, offline)"),
@@ -221,6 +351,25 @@ def dialog(
     if lang is not None and lang not in {"en", "fr"}:
         raise typer.BadParameter("--lang must be 'en' or 'fr'")
     run_dialog(cfg, topic=topic, language=lang, echo=typer.echo)
+
+
+def _term_width(cap: int = 100) -> int:
+    return min(cap, max(40, shutil.get_terminal_size((80, 24)).columns))
+
+
+def _wrap_field(label: str, text: str, *, joiner: str = " ") -> None:
+    """Print ``  label: text`` with the text wrapped under a hanging indent
+    instead of as one runaway terminal line."""
+    indent = "  " + " " * len(label)
+    body = textwrap.fill(
+        text,
+        width=_term_width(),
+        initial_indent=f"  {label}",
+        subsequent_indent=indent,
+        break_long_words=False,
+        break_on_hyphens=False,
+    )
+    typer.echo(body)
 
 
 def _echo_tokens(result: object) -> None:
@@ -261,13 +410,13 @@ def propose(
         titles = [result.notes_by_id[n].title for n in p.note_ids if n in result.notes_by_id]
         typer.echo("")
         typer.echo(f"[{i}/{len(result.proposals)}] {p.title}")
-        typer.echo(f"  thesis:    {p.thesis}")
-        typer.echo(f"  rationale: {p.rationale}")
-        typer.echo(f"  notes ({len(p.note_ids)}): " + "; ".join(titles))
+        _wrap_field("thesis:    ", p.thesis)
+        _wrap_field("rationale: ", p.rationale)
+        _wrap_field(f"notes ({len(p.note_ids)}): ", "; ".join(titles))
         if p.outline:
-            typer.echo("  outline:   " + " → ".join(p.outline))
+            _wrap_field("outline:   ", " → ".join(p.outline))
         if p.open_questions:
-            typer.echo("  open Qs:   " + "; ".join(p.open_questions))
+            _wrap_field("open Qs:   ", "; ".join(p.open_questions))
 
         if not yes and not typer.confirm(
             f"Create draft and move {len(p.note_ids)} note(s)?", default=False
@@ -651,7 +800,14 @@ def memory_index() -> None:
 
     cfg = get_config()
     typer.echo("Embedding journals catalog (first run downloads the model) …", err=True)
-    n = build(cfg)
+    try:
+        n = build(cfg)
+    except FileNotFoundError as e:
+        typer.echo(
+            f"No journals catalog to index: {e}. Expected data/journals.yaml.",
+            err=True,
+        )
+        raise typer.Exit(code=1) from e
     typer.echo(f"Indexed {n} journals → {cfg.memory_db_path}")
 
 
@@ -668,9 +824,20 @@ def memory_search(
     from cophilo.memory import search as memory_search_fn
 
     cfg = get_config()
-    results = memory_search_fn(
-        cfg, query, limit=limit, open_access_only=open_access_only
-    )
+    try:
+        results = memory_search_fn(
+            cfg, query, limit=limit, open_access_only=open_access_only
+        )
+    except FileNotFoundError as e:
+        typer.echo(
+            f"No journals catalog: {e}. Expected data/journals.yaml — add it, "
+            "then run `cophilo memory index`.",
+            err=True,
+        )
+        raise typer.Exit(code=1) from e
+    except ValueError as e:  # empty query, etc.
+        typer.echo(str(e), err=True)
+        raise typer.Exit(code=1) from e
     if as_json:
         typer.echo(json.dumps(results, ensure_ascii=False, indent=2))
         return

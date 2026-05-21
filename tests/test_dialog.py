@@ -71,11 +71,14 @@ def test_run_dialog_scripted(isolated_data_dir):
     cfg = isolated_data_dir
     script = iter(
         [
-            "note about compatibilism",
-            "",  # blank lines are ignored
-            "/new",
-            "a separate thought",
-            "/cancel",
+            "Boredom is not a mere absence;",
+            "it has its own intentional structure.",
+            "",  # blank line commits the multi-line note
+            "A second, separate thought.",
+            "",  # commits — appended to the same session file
+            "/new",  # boundary: the next note starts a fresh file
+            "a throwaway draft line",
+            "/cancel",  # discards the in-progress (uncommitted) note
             "/done",
         ]
     )
@@ -87,11 +90,104 @@ def test_run_dialog_scripted(isolated_data_dir):
         echo=out.append,
         clock=_CLOCK,
     )
-    # one file survived (the /cancel discarded the second)
+    # One session = one file; the /new boundary's note was cancelled.
     assert len(session.files) == 1
     assert session.files[0].exists()
+    assert session.total_entries == 2  # two committed notes
+
+    body = frontmatter.loads(
+        session.files[0].read_text(encoding="utf-8")
+    ).content
+    # Multi-line input is preserved as one note, newline kept inside it.
+    assert "Boredom is not a mere absence;\nit has its own intentional structure." in body
+    assert "A second, separate thought." in body
+    assert "throwaway draft line" not in body  # cancelled, never written
+
     assert "Saved" in session.summary()
     assert any("discarded" in line for line in out)
+
+
+def test_pending_note_survives_done(isolated_data_dir):
+    cfg = isolated_data_dir
+    script = iter(["An unfinished but real thought", "/done"])
+    session = run_dialog(
+        cfg,
+        input_fn=lambda _prompt: next(script),
+        echo=lambda _msg: None,
+        clock=_CLOCK,
+    )
+    # No blank line before /done, but the pending note is committed, not lost.
+    assert session.total_entries == 1
+    assert len(session.files) == 1
+    body = frontmatter.loads(
+        session.files[0].read_text(encoding="utf-8")
+    ).content
+    assert "An unfinished but real thought" in body
+
+
+@pytest.mark.parametrize("word", ["exit", "quit", "done", "EXIT", "Quit"])
+def test_bare_exit_word_leaves_when_buffer_empty(isolated_data_dir, word):
+    """§4.1 — `exit` outside / `/done` inside dialog is a muscle-memory trap.
+    A single-word `exit`/`quit`/`done` (no slash) on its own line, between
+    notes, should leave instead of being saved as note text."""
+    cfg = isolated_data_dir
+    script = iter(["A real thought.", "", word])  # commit, then bare 'exit'
+    out: list[str] = []
+    session = run_dialog(
+        cfg,
+        input_fn=lambda _prompt: next(script),
+        echo=out.append,
+        clock=_CLOCK,
+    )
+    assert session.total_entries == 1
+    body = frontmatter.loads(
+        session.files[0].read_text(encoding="utf-8")
+    ).content
+    assert word.lower() not in body.lower()  # the stray word is NOT in the note
+    assert any("leaving" in line for line in out)
+
+
+def test_bare_exit_word_prompts_when_buffer_nonempty(isolated_data_dir):
+    """When mid-note, `exit` alone should NOT leave and should NOT silently
+    join the note as text — it should disambiguate."""
+    cfg = isolated_data_dir
+    script = iter([
+        "Line one of an argument.",
+        "exit",       # mid-note: ambiguous, must prompt
+        "still going",
+        "",           # commit
+        "/done",
+    ])
+    out: list[str] = []
+    session = run_dialog(
+        cfg,
+        input_fn=lambda _prompt: next(script),
+        echo=out.append,
+        clock=_CLOCK,
+    )
+    assert session.total_entries == 1
+    body = frontmatter.loads(
+        session.files[0].read_text(encoding="utf-8")
+    ).content
+    assert "Line one" in body and "still going" in body
+    assert "exit" not in body  # not absorbed as note text
+    assert any("type /done to leave" in line for line in out)
+
+
+def test_appended_notes_have_single_blank_line_separator(isolated_data_dir):
+    """§4.7 — appending must yield exactly one blank line between notes,
+    never a \\n\\n\\n run."""
+    cfg = isolated_data_dir
+    s = DialogSession(cfg=cfg, topic="forgetting", clock=_CLOCK)
+    s.add("First note paragraph one.")
+    s.add("Second committed note.")
+    s.add("Third committed note.")
+    raw = s.files[0].read_text(encoding="utf-8")
+    body = frontmatter.loads(raw).content
+    # No triple-newline runs:
+    assert "\n\n\n" not in body
+    # And the three notes are all there, separated by exactly one blank line:
+    assert "First note paragraph one.\n\nSecond committed note.\n\nThird committed note." in body
 
 
 def test_capture_then_ingest_roundtrip(isolated_data_dir):
