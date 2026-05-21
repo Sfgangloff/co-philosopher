@@ -13,6 +13,11 @@ from pathlib import Path
 
 import frontmatter
 
+from cophilo.biblio.synthesize import (
+    format_entries_with_tiers,
+    format_missing_canonical,
+    load_synthesis,
+)
 from cophilo.config import Config
 from cophilo.extract.claude import LLMClient, make_client
 from cophilo.ingest.normalize import detect_language
@@ -75,6 +80,67 @@ def _format_open_questions(questions: list[str]) -> str:
         return "(none)"
     return "\n".join(f"- {q}" for q in questions)
 
+
+# --- §3 bibliography-aware review ------------------------------------------
+
+
+_NO_BIB_MARKER = "(no synthesis attached — skip bibliography-aware verdicts)"
+
+
+def _format_bibliography_context(against: Path) -> tuple[str, str]:
+    """Render the bibliography sections of the review prompt from a saved
+    synthesis JSON. Returns ``(bibliography_block, directive_block)``: the
+    first lists tier-annotated works plus missing-canonical gaps, the second
+    instructs the model to produce ``bibliography_check`` verdicts.
+
+    Raises ``ValueError`` if the file cannot be parsed as a synthesis."""
+    try:
+        loaded = load_synthesis(against)
+    except Exception as e:
+        raise ValueError(
+            f"--against {against}: not a valid saved synthesis JSON ({e})"
+        ) from e
+    if not loaded.entries:
+        raise ValueError(
+            f"--against {against}: synthesis has no bibliography entries to review against."
+        )
+    entries_block = format_entries_with_tiers(loaded.entries, loaded.synthesis)
+    missing_block = format_missing_canonical(loaded.synthesis)
+    bibliography = (
+        f"Topic of the saved synthesis: {loaded.topic}\n"
+        f"PhilArchive query that produced it: {loaded.query}\n\n"
+        f"### Retrieved works (with the synthesis's tier verdicts)\n\n"
+        f"{entries_block}\n\n"
+        f"### Canonical literature the synthesis flagged as MISSING from this corpus\n\n"
+        f"{missing_block}"
+    )
+    directive = (
+        "## Bibliography-aware verdicts to produce\n\n"
+        "You were given the bibliography above, with the synthesis's tier "
+        "verdicts (canonical / peer_reviewed / speculative / off_topic) and a "
+        "list of missing canonical literature. For every load-bearing claim "
+        "in the draft — not every sentence — produce a `bibliography_check` "
+        "entry with:\n"
+        "- `claim`: a short paraphrase of the claim;\n"
+        "- `verdict`: `supported` (a canonical/peer-reviewed entry backs it), "
+        "`unsupported` (no entry backs it and it needs one), `contradicted` "
+        "(the bibliography says the opposite), `overclaim` (true in a weaker "
+        "form than asserted), or `missing_citation` (the claim is plausible "
+        "but appears in the draft without any citation);\n"
+        "- `evidence`: one sentence naming the work(s) by author/year or the "
+        "external_id shown in brackets — e.g. `[GERVOSO-3]`;\n"
+        "- `evidence_line`: the 1-indexed line where the claim is made (0 if "
+        "spread or general);\n"
+        "- `cite_suggestions`: the exact external_ids from the bibliography "
+        "the draft should add (or whose absence it should acknowledge).\n\n"
+        "Refuse to back a claim with a `speculative` or `off_topic` entry; if "
+        "the only support is grey literature, the verdict is `unsupported` or "
+        "`overclaim` (and say so in `evidence`). Where the missing-canonical "
+        "list flags a gap that the draft's claim is exposed to, prefer "
+        "`missing_citation` and quote the missing author in `evidence`."
+    )
+    return bibliography, directive
+
 _PROMPTS_DIR = Path(__file__).resolve().parent / "prompts"
 _MAX_CHARS = 120_000
 
@@ -97,6 +163,7 @@ class ReviewResult:
     comment_count: int
     tally: str = ""
     sidecar: bool = False
+    against: Path | None = None
     input_tokens: int = 0
     output_tokens: int = 0
     cache_read_tokens: int = 0
@@ -344,13 +411,18 @@ def review_file(
     write: bool = True,
     only: set[str] | None = None,
     sidecar: bool = False,
+    against: Path | None = None,
 ) -> ReviewResult:
     """Critically review ``path`` and weave the remarks back into it.
 
     ``client`` is injectable so tests run without the API. ``write=False``
     leaves the file untouched and only returns the annotated text. ``only``
     keeps just those comment kinds; ``sidecar`` writes a separate
-    ``<name>.review.md`` and never touches the source.
+    ``<name>.review.md`` and never touches the source. ``against`` points
+    at a saved synthesis JSON (``data/syntheses/<slug>.json``): when
+    provided, the reviewer also produces ``bibliography_check`` verdicts on
+    the draft's central claims, using the synthesis's tier judgements and
+    missing-canonical list as the evidence base.
     """
     path = path.resolve()
     if not path.is_file():
@@ -373,11 +445,22 @@ def review_file(
 
     template = load_prompt(language)
     open_questions = _find_open_questions(path)
+    if against is not None:
+        bibliography_block, bibliography_directive = _format_bibliography_context(
+            against
+        )
+    else:
+        bibliography_block = _NO_BIB_MARKER
+        bibliography_directive = (
+            "(No synthesis attached — leave `bibliography_check` empty.)"
+        )
     system = template.format(
         filename=path.name,
         suffix=path.suffix or "(none)",
         language=language,
         open_questions=_format_open_questions(open_questions),
+        bibliography=bibliography_block,
+        bibliography_directive=bibliography_directive,
     )
     user = (
         "The file to review, with 1-indexed line numbers (the numbers and the "
@@ -415,6 +498,7 @@ def review_file(
         comment_count=len(review.comments),
         tally=tally_phrase(review, only),
         sidecar=sidecar,
+        against=against,
         input_tokens=result.input_tokens,
         output_tokens=result.output_tokens,
         cache_read_tokens=result.cache_read_tokens,

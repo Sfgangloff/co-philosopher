@@ -56,4 +56,10 @@ line number that best supports the verdict. A draft that skips one of its
 own pre-flagged questions is a more serious finding than a typo and should
 be reflected in the `summary`.
 
+## Bibliography you may use as the evidence base
+
+{bibliography}
+
+{bibliography_directive}
+
 Write every comment in {language}.

@@ -545,6 +545,20 @@ def review(
             "monologuing twice."
         ),
     ),
+    against: Path = typer.Option(
+        None,
+        "--against",
+        exists=True,
+        readable=True,
+        dir_okay=False,
+        help=(
+            "Bibliography-aware review: read a saved synthesis JSON "
+            "(data/syntheses/<slug>.json) and check the draft's claims "
+            "against its tier verdicts and missing-canonical list. Catches "
+            "the grey-literature problem at review-time, not just after "
+            "publication."
+        ),
+    ),
 ) -> None:
     """Critically (but honestly) review a file, weaving line-anchored comments
     into the file itself. Comments are marked, non-rendering, and reversible:
@@ -553,7 +567,13 @@ def review(
     With ``--respond-to <prior.review.md>``, instead runs a second-round
     counter-pass over a sidecar review you have annotated with ``> reply:``
     lines: the critic engages your replies (concede / sharpen / pivot) and
-    writes ``<name>.review-r2.md`` (or ``-r3``). Capped at three rounds."""
+    writes ``<name>.review-r2.md`` (or ``-r3``). Capped at three rounds.
+
+    With ``--against <synthesis.json>``, also produces per-claim
+    bibliography verdicts (supported / unsupported / overclaim /
+    contradicted / missing_citation), citing the works the synthesis
+    judged canonical-or-peer-reviewed and flagging missing canonical
+    literature the draft is exposed to."""
     cfg = get_config()
     if lang is not None and lang not in {"en", "fr"}:
         raise typer.BadParameter("--lang must be 'en' or 'fr'")
@@ -586,6 +606,13 @@ def review(
             typer.echo(f"No review comments in {file}")
         return
 
+    if respond_to is not None and against is not None:
+        raise typer.BadParameter(
+            "--respond-to and --against are mutually exclusive: --respond-to "
+            "is a counter-pass over a prior review, --against runs a fresh "
+            "bibliography-aware review."
+        )
+
     if respond_to is not None:
         typer.echo(
             f"Counter-pass: responding to replies in {respond_to.name} …",
@@ -610,7 +637,12 @@ def review(
         _echo_tokens(counter)
         return
 
-    typer.echo(f"Reviewing {file} …", err=True)
+    if against is not None:
+        typer.echo(
+            f"Reviewing {file} against synthesis {against.name} …", err=True
+        )
+    else:
+        typer.echo(f"Reviewing {file} …", err=True)
     try:
         result = review_file(
             cfg,
@@ -619,6 +651,7 @@ def review(
             write=not dry_run,
             only=only_set,
             sidecar=(fmt == "sidecar"),
+            against=against,
         )
     except ValueError as e:
         typer.echo(str(e), err=True)
@@ -636,6 +669,18 @@ def review(
         err=True,
     )
     typer.echo(f"Verdict: {result.review.summary}", err=True)
+    bib_checks = result.review.bibliography_check
+    if bib_checks:
+        counts: dict[str, int] = {}
+        for c in bib_checks:
+            counts[c.verdict] = counts.get(c.verdict, 0) + 1
+        order = ["unsupported", "contradicted", "overclaim", "missing_citation", "supported"]
+        parts = [f"{counts[k]} {k}" for k in order if counts.get(k)]
+        typer.echo(
+            f"  bibliography check: {', '.join(parts)} "
+            f"(against {result.against.name if result.against else '?'})",
+            err=True,
+        )
     if result.written:
         if result.sidecar:
             typer.echo(f"  the source file was not touched; review is in {result.path.name}", err=True)

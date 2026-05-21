@@ -331,6 +331,218 @@ def test_review_no_outline_means_no_questions_block(isolated_data_dir, tmp_path)
     assert "(none)" in system  # the placeholder is what the prompt shows
 
 
+# --- §3 bibliography-aware review (--against <synthesis.json>) -------------
+
+
+def _make_saved_synthesis(cfg, *, topic="forgetting", with_missing=True):
+    """Write a small synthesis to data/syntheses/<slug>.json and return its
+    path. Uses the real `save_synthesis` so the on-disk layout matches what
+    `cophilo biblio synthesize` produces."""
+    from cophilo.biblio.schemas import (
+        BiblioEntry,
+        KeyWork,
+        MissingCanonical,
+        SourceJudgement,
+        TopicSynthesis,
+    )
+    from cophilo.biblio.synthesize import save_synthesis
+
+    entries = [
+        BiblioEntry(
+            external_id="ABCFOR-1",
+            title="Forgetting as constitutive of concept-formation",
+            authors=["A. Borges"],
+            journal="Mind",
+            year=2018,
+            abstract="Argues forgetting is required for abstraction.",
+            url="https://philarchive.org/rec/ABCFOR-1",
+        ),
+        BiblioEntry(
+            external_id="GREYFR-2",
+            title="Self-published thoughts on memory tools",
+            authors=["G. Pseudonym"],
+            journal=None,
+            year=2024,
+            abstract="Speculative musings, no peer review.",
+            url="https://philarchive.org/rec/GREYFR-2",
+        ),
+    ]
+    synth = TopicSynthesis(
+        overview="Forgetting is constitutive of thought; speculative grey lit is fringe.",
+        big_questions=["Is forgetting constitutive?"],
+        small_questions=[],
+        key_works=[KeyWork(title=e.title, authors=e.authors_str(), why="x") for e in entries[:1]],
+        suggested_searches=[],
+        source_judgements=[
+            SourceJudgement(
+                external_id="ABCFOR-1",
+                tier="canonical",
+                rationale="Mind, established author.",
+                cite_as="primary",
+            ),
+            SourceJudgement(
+                external_id="GREYFR-2",
+                tier="speculative",
+                rationale="self-published, no peer review",
+                cite_as="do_not_cite",
+            ),
+        ],
+        missing_canonical=(
+            [
+                MissingCanonical(
+                    author="Bergson",
+                    work_hint="Matter and Memory",
+                    why="The canonical theorist of memory as selection.",
+                )
+            ]
+            if with_missing
+            else []
+        ),
+        corpus_caveats="Thin corpus on the user's framing.",
+    )
+    json_path, _ = save_synthesis(cfg, topic, "forgetting memory", synth, entries)
+    return json_path
+
+
+def _review_with_bib_check():
+    from cophilo.review.schemas import ClaimAssessment
+
+    return FileReview(
+        summary="An argument with one well-supported claim and one overclaim.",
+        comments=[
+            ReviewComment(line=2, kind="weakness", comment="Premise needs an argument."),
+        ],
+        bibliography_check=[
+            ClaimAssessment(
+                claim="Forgetting is constitutive of concept-formation.",
+                verdict="supported",
+                evidence="Borges 2018 [ABCFOR-1] makes exactly this argument.",
+                evidence_line=2,
+                cite_suggestions=["ABCFOR-1"],
+            ),
+            ClaimAssessment(
+                claim="Memory tools recreate Funes's predicament.",
+                verdict="missing_citation",
+                evidence="Bergson's selection thesis is the canonical missing source.",
+                evidence_line=2,
+                cite_suggestions=[],
+            ),
+            ClaimAssessment(
+                claim="Externalised memory necessarily impairs cognition.",
+                verdict="overclaim",
+                evidence="Only GREYFR-2 (speculative) makes this claim; not a peer-reviewed support.",
+                evidence_line=2,
+                cite_suggestions=["GREYFR-2"],
+            ),
+        ],
+    )
+
+
+def test_review_against_injects_bibliography_block(isolated_data_dir, tmp_path):
+    """§3 — when `against=<synthesis.json>` is passed, the prompt carries
+    the tier-annotated bibliography, the missing-canonical list, and the
+    directive that tells the model to produce `bibliography_check`."""
+    cfg = isolated_data_dir
+    synth_path = _make_saved_synthesis(cfg)
+
+    f = tmp_path / "draft.tex"
+    f.write_text("\\section{X}\nForgetting is constitutive of thought.\n", encoding="utf-8")
+    fake = FakeClient(_review_with_bib_check())
+
+    result = review_file(cfg, f, client=fake, against=synth_path, write=False)
+    system = fake.calls[0]["system"]
+    # Tier annotations from format_entries_with_tiers reach the prompt:
+    assert "[CANONICAL — cite as primary]" in system
+    assert "ABCFOR-1" in system  # external_id surfaces so the model can cite by id
+    # do_not_cite entries are dropped from the listing, by contract:
+    assert "GREYFR-2" not in system or "do_not_cite" not in system
+    # Missing-canonical list is in the prompt:
+    assert "Bergson" in system
+    assert "Matter and Memory" in system
+    # Directive instructs the model to produce bibliography_check verdicts:
+    assert "bibliography_check" in system
+    assert "missing_citation" in system
+    # And the result carries the synthesis path through so the CLI can echo it:
+    assert result.against == synth_path
+    assert len(result.review.bibliography_check) == 3
+
+
+def test_review_without_against_skips_bibliography_block(isolated_data_dir, tmp_path):
+    """Without `--against`, the prompt's bibliography block is the sentinel
+    and the model is explicitly told to leave `bibliography_check` empty."""
+    cfg = isolated_data_dir
+    f = tmp_path / "x.tex"
+    f.write_text("\\section{X}\nclaim\n", encoding="utf-8")
+    fake = FakeClient(_review())
+    result = review_file(cfg, f, client=fake, write=False)
+    system = fake.calls[0]["system"]
+    assert "no synthesis attached" in system.lower()
+    assert "leave `bibliography_check` empty" in system
+    assert result.against is None
+
+
+def test_review_against_invalid_synthesis_raises(isolated_data_dir, tmp_path):
+    """A path that isn't a saved synthesis JSON yields a clear error before
+    we burn an LLM call."""
+    cfg = isolated_data_dir
+    bad = tmp_path / "not-a-synthesis.json"
+    bad.write_text("{}", encoding="utf-8")
+    f = tmp_path / "x.tex"
+    f.write_text("\\section{X}\nclaim\n", encoding="utf-8")
+    with pytest.raises(ValueError) as excinfo:
+        review_file(cfg, f, client=FakeClient(_review()), against=bad, write=False)
+    assert "not a valid saved synthesis" in str(excinfo.value)
+
+
+def test_annotate_renders_bibliography_check(isolated_data_dir):
+    """Bibliography-check verdicts appear in both inline annotation (as a
+    trailing BIBLIOGRAPHY CHECK section, every line sentinel-marked so it
+    is cleared the same way) and sidecar markdown."""
+    from cophilo.review.annotate import sidecar_markdown
+
+    review = _review_with_bib_check()
+    syntax = syntax_for(".tex")
+    src = "\\section{X}\nForgetting is constitutive of thought.\n"
+    out = annotate(src, review, syntax)
+    assert "BIBLIOGRAPHY CHECK" in out
+    assert "[SUPPORTED]" in out
+    assert "[OVERCLAIM]" in out
+    assert "[CITE-NEEDED]" in out
+    # The trailing section is also sentinel-marked, so --clear removes it:
+    syntax_for_md = syntax_for(".tex")
+    cleared_lines = strip_lines(out.splitlines(), syntax_for_md)
+    assert "BIBLIOGRAPHY CHECK" not in "\n".join(cleared_lines)
+
+    md = sidecar_markdown("article.tex", review)
+    assert "## Bibliography check" in md
+    assert "[SUPPORTED]" in md and "[OVERCLAIM]" in md
+    assert "ABCFOR-1" in md  # cite suggestion preserved
+
+
+def test_cli_review_against_and_respond_to_mutually_exclusive(
+    monkeypatch, isolated_data_dir, tmp_path
+):
+    """Passing both --against and --respond-to is incoherent (one is a
+    counter-pass over an existing review, the other a fresh bibliography-
+    aware review). The CLI refuses, not the model."""
+    f = tmp_path / "draft.tex"
+    f.write_text("\\section{X}\nclaim\n", encoding="utf-8")
+    prior = tmp_path / "prior.review.md"
+    prior.write_text("- **[WEAKNESS] line 2**  ·  “claim”\n> reply: but\n", encoding="utf-8")
+    synth = tmp_path / "syn.json"
+    synth.write_text("{}", encoding="utf-8")
+    res = runner.invoke(
+        app,
+        [
+            "review", str(f),
+            "--respond-to", str(prior),
+            "--against", str(synth),
+        ],
+    )
+    assert res.exit_code != 0
+    assert "mutually exclusive" in (res.output + (res.stderr or ""))
+
+
 def test_respond_to_review_round2(isolated_data_dir, tmp_path):
     """§2.2 — given a sidecar review the user replied to (with `> reply:`
     lines), `respond_to_review` parses the exchanges, calls Claude once,

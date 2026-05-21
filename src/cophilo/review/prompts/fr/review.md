@@ -63,4 +63,10 @@ le numéro de ligne qui appuie le verdict. Un brouillon qui ignore l'une
 de ses propres questions pré-signalées est un constat plus grave qu'une
 coquille et doit se refléter dans le `summary`.
 
+## Bibliographie disponible comme base de preuve
+
+{bibliography}
+
+{bibliography_directive}
+
 Rédigez chaque commentaire en {language}.
