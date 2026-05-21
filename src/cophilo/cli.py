@@ -18,6 +18,13 @@ from cophilo.draft import accept_proposal, compose_draft, propose_articles
 from cophilo.extract.passes import extract_document
 from cophilo.ingest.dispatch import SUPPORTED_SUFFIXES, ingest_tree
 from cophilo.notes import run_dialog
+from cophilo.review import (
+    MAX_ROUND_DEPTH,
+    clear_review_comments,
+    respond_to_review,
+    review_file,
+    sidecar_path,
+)
 
 app = typer.Typer(
     add_completion=False,
@@ -307,6 +314,147 @@ def draft(
         f"cache {result.cache_read_tokens} read / {result.cache_write_tokens} write]",
         err=True,
     )
+
+
+@app.command()
+def review(
+    file: Path = typer.Argument(
+        ...,
+        exists=True,
+        readable=True,
+        dir_okay=False,
+        help="The file to review (.tex, .md, .txt, …)",
+    ),
+    lang: str = typer.Option(
+        None, "--lang", help="Review language: en | fr (default: auto-detect from the file)"
+    ),
+    clear: bool = typer.Option(
+        False, "--clear", help="Remove cophilo review comments from the file and exit (no LLM)"
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Print the annotated file to stdout instead of writing it"
+    ),
+    only: str = typer.Option(
+        None,
+        "--only",
+        help="Keep only these comment kinds, comma-separated "
+        "(weakness,question,suggestion,clarity,strength)",
+    ),
+    fmt: str = typer.Option(
+        "inline",
+        "--format",
+        help="inline = comments woven into the file; sidecar = a separate "
+        "<name>.review.md (no mark touches the source)",
+    ),
+    respond_to: Path = typer.Option(
+        None,
+        "--respond-to",
+        exists=True,
+        readable=True,
+        dir_okay=False,
+        help=(
+            "Counter-pass: read a prior sidecar review (with `> reply: …` "
+            "lines you added) and produce round 2 (or 3, capped). Marginalia "
+            "as conversation; the critic responds to your reply instead of "
+            "monologuing twice."
+        ),
+    ),
+) -> None:
+    """Critically (but honestly) review a file, weaving line-anchored comments
+    into the file itself. Comments are marked, non-rendering, and reversible:
+    re-running replaces the prior review and never edits the original lines.
+
+    With ``--respond-to <prior.review.md>``, instead runs a second-round
+    counter-pass over a sidecar review you have annotated with ``> reply:``
+    lines: the critic engages your replies (concede / sharpen / pivot) and
+    writes ``<name>.review-r2.md`` (or ``-r3``). Capped at three rounds."""
+    cfg = get_config()
+    if lang is not None and lang not in {"en", "fr"}:
+        raise typer.BadParameter("--lang must be 'en' or 'fr'")
+    if fmt not in {"inline", "sidecar"}:
+        raise typer.BadParameter("--format must be 'inline' or 'sidecar'")
+
+    valid_kinds = {"strength", "weakness", "question", "suggestion", "clarity"}
+    only_set: set[str] | None = None
+    if only:
+        only_set = {k.strip().lower() for k in only.split(",") if k.strip()}
+        bad = only_set - valid_kinds
+        if bad:
+            raise typer.BadParameter(
+                f"--only: unknown kind(s) {sorted(bad)}; pick from {sorted(valid_kinds)}"
+            )
+
+    if clear:
+        changed = clear_review_comments(file)
+        side = sidecar_path(file)
+        side_removed = False
+        if side.exists():
+            side.unlink()
+            side_removed = True
+        if changed or side_removed:
+            where = " and ".join(
+                w for w, on in (("inline", changed), (side.name, side_removed)) if on
+            )
+            typer.echo(f"Cleared review comments ({where}) from {file}")
+        else:
+            typer.echo(f"No review comments in {file}")
+        return
+
+    if respond_to is not None:
+        typer.echo(
+            f"Counter-pass: responding to replies in {respond_to.name} …",
+            err=True,
+        )
+        try:
+            counter = respond_to_review(
+                cfg, file, prior=respond_to, language=lang
+            )
+        except ValueError as e:
+            typer.echo(str(e), err=True)
+            raise typer.Exit(code=1) from e
+        except RuntimeError as e:
+            typer.echo(str(e), err=True)
+            raise typer.Exit(code=1) from e
+        typer.echo(
+            f"Wrote {counter.path.name} — round {counter.round_index}/{MAX_ROUND_DEPTH}, "
+            f"{counter.exchanges_count} exchange(s).",
+            err=True,
+        )
+        typer.echo(f"Summary: {counter.round.summary}", err=True)
+        _echo_tokens(counter)
+        return
+
+    typer.echo(f"Reviewing {file} …", err=True)
+    try:
+        result = review_file(
+            cfg,
+            file,
+            language=lang,
+            write=not dry_run,
+            only=only_set,
+            sidecar=(fmt == "sidecar"),
+        )
+    except ValueError as e:
+        typer.echo(str(e), err=True)
+        raise typer.Exit(code=1) from e
+    except RuntimeError as e:  # missing backend / CLI / API key
+        typer.echo(str(e), err=True)
+        raise typer.Exit(code=1) from e
+
+    if dry_run:
+        typer.echo(result.annotated_text)
+    tally = result.tally or "no comments"
+    typer.echo(
+        f"{'Wrote' if result.written else 'Reviewed'} {result.path} — "
+        f"{tally}, language {result.language}.",
+        err=True,
+    )
+    typer.echo(f"Verdict: {result.review.summary}", err=True)
+    if result.written:
+        if result.sidecar:
+            typer.echo(f"  the source file was not touched; review is in {result.path.name}", err=True)
+        typer.echo(f"  clear with: cophilo review {file} --clear", err=True)
+    _echo_tokens(result)
 
 
 biblio_app = typer.Typer(
