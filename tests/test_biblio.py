@@ -87,6 +87,54 @@ def test_parse_description_glued_year_and_html():
     assert a == "This is a working paper with no venue."
 
 
+def test_parse_description_long_metadata_chapter_with_editors():
+    """§4.4 (case 1) — book chapter with editors pushes the citation year
+    past offset 60. The year is still at a clean ". <year><Uppercase>"
+    boundary; cut it instead of leaving "2018Forgetting…" in the abstract."""
+    j, y, a = _parse_description(
+        "_Forgetting_, K. Michaelian, D. Debus & D. Perrin (eds.), "
+        "Routledge, pp. 223-240. 2018Forgetting is importantly related to memory."
+    )
+    assert j == "Forgetting"
+    assert y == 2018
+    assert a == "Forgetting is importantly related to memory."
+
+
+def test_parse_description_parenthetical_intext_citation_kept_with_space():
+    """§4.4 (case 2) — "(Cuc, Koppel, & Hirst, 2007This…)" is an in-text
+    citation INSIDE the abstract (preceded by comma, not period), so the
+    year must NOT be cut. But the glued capital is a typo we can cosmetically
+    fix by inserting a space."""
+    j, y, a = _parse_description(
+        "This study replicates earlier work (Cuc, Koppel, & Hirst, 2007This experiment investigated…) and goes further."
+    )
+    assert j is None
+    # Year was inside prose; not stripped as a citation year:
+    assert y is None
+    # And the glued "2007This" was cosmetically fixed:
+    assert a is not None and "2007 This experiment" in a
+    assert "2007This" not in a
+
+
+def test_parse_description_forthcoming_and_glued_year_no_journal():
+    # "forthcoming" glued to the abstract, with a journal prefix.
+    j, y, a = _parse_description("_Synthese_ forthcomingThis paper argues X.")
+    assert j == "Synthese"
+    assert y is None
+    assert a == "This paper argues X."
+
+    # Year glued to a capitalised first word, with NO journal prefix: the
+    # 4-digit-then-capital boundary is enough to split the citation off.
+    j, y, a = _parse_description("Philosophical Review 134. 2025In this chapter I argue.")
+    assert y == 2025
+    assert a == "In this chapter I argue."
+
+    # "in press" with no journal but at the very start.
+    j, y, a = _parse_description("in press. The central thesis is defended here.")
+    assert (j, y) == (None, None)
+    assert a == "The central thesis is defended here."
+
+
 # --- search (no network) -------------------------------------------------
 
 
@@ -262,6 +310,152 @@ def test_cli_biblio_synthesize(monkeypatch, isolated_data_dir, tmp_path):
     assert "## Big questions" in res.stdout
     assert "Is free will compatible with determinism?" in res.stdout
     assert out.exists() and "## Overview" in out.read_text(encoding="utf-8")
+    # §1.2 — synthesis is persisted to data/syntheses/<slug>.{json,md}
+    # whether or not --out was passed.
+    cfg = isolated_data_dir
+    saved = list(cfg.syntheses_dir.glob("*.json"))
+    assert len(saved) == 1, f"expected one saved synthesis, got {saved}"
+    saved_md = list(cfg.syntheses_dir.glob("*.md"))
+    assert len(saved_md) == 1
+    # The user-friendly echo mentions the saved path.
+    assert "Saved synthesis" in res.output or "Saved synthesis" in (res.stderr or "")
+
+
+def test_synthesis_save_and_load_roundtrip(isolated_data_dir):
+    """§1.2 — a saved synthesis round-trips through load_synthesis with the
+    structured fields (source_judgements, missing_canonical, corpus_caveats)
+    preserved, so `draft --from-synthesis` can consume them."""
+    from cophilo.biblio.schemas import MissingCanonical, SourceJudgement
+    from cophilo.biblio.synthesize import (
+        load_synthesis,
+        save_synthesis,
+        synthesis_paths,
+    )
+
+    cfg = isolated_data_dir
+    entries = parse_feed(FIXTURE.read_text(encoding="utf-8"))
+    synthesis = TopicSynthesis(
+        overview="An overview.",
+        big_questions=["Q1?"],
+        small_questions=[],
+        key_works=[],
+        suggested_searches=["follow-up"],
+        source_judgements=[
+            SourceJudgement(
+                external_id="LISFWD",
+                tier="peer_reviewed",
+                rationale="Published in Noûs.",
+                cite_as="primary",
+            ),
+            SourceJudgement(
+                external_id="MORATA-16",
+                tier="speculative",
+                rationale="Single-author repeat.",
+                cite_as="do_not_cite",
+            ),
+        ],
+        missing_canonical=[
+            MissingCanonical(
+                author="Fischer, J. M.",
+                work_hint="semicompatibilism",
+                why="Standard reference omitted.",
+            ),
+        ],
+        corpus_caveats="Corpus is thin on the empirical side.",
+    )
+    json_path, md_path = save_synthesis(
+        cfg, "Doing otherwise", "free will", synthesis, entries
+    )
+    assert json_path.exists() and md_path.exists()
+    # Round-trip:
+    loaded = load_synthesis(json_path)
+    assert loaded.topic == "Doing otherwise"
+    assert loaded.query == "free will"
+    assert {e.external_id for e in loaded.entries} == {e.external_id for e in entries}
+    assert loaded.synthesis.corpus_caveats == "Corpus is thin on the empirical side."
+    judgements = {j.external_id: j for j in loaded.synthesis.source_judgements}
+    assert judgements["LISFWD"].tier == "peer_reviewed"
+    assert judgements["MORATA-16"].cite_as == "do_not_cite"
+    assert loaded.synthesis.missing_canonical[0].author == "Fischer, J. M."
+
+    # synthesis_paths is deterministic on the topic (same topic → same path).
+    again_json, again_md = synthesis_paths(cfg, "Doing otherwise")
+    assert again_json == json_path and again_md == md_path
+
+    # And the rendered MD surfaces the new sections:
+    md = md_path.read_text(encoding="utf-8")
+    assert "## Corpus caveats" in md
+    assert "## Missing canonical literature" in md
+    assert "## Source-quality verdicts" in md
+    assert "[peer_reviewed]" in md
+    # Suggested follow-up searches are now runnable commands, not bare backticks.
+    assert "cophilo biblio search" in md
+
+
+def test_synthesize_cross_links_to_candidate_venues(isolated_data_dir):
+    """§2.3 — saved synthesis carries candidate venues (memory.search), and
+    the rendered MD surfaces them under `## Candidate venues`. If the
+    memory index isn't built, the lookup silently no-ops."""
+    cfg = isolated_data_dir
+    entries = parse_feed(FIXTURE.read_text(encoding="utf-8"))
+    venues = [
+        {
+            "name": "Mind & Language",
+            "score": 0.78,
+            "open_access": False,
+            "scope": "analytic phil of mind / language",
+            "url": "https://onlinelibrary.wiley.com/journal/14680017",
+        },
+        {
+            "name": "Synthese",
+            "score": 0.71,
+            "open_access": False,
+            "scope": "philosophy of science / language",
+            "url": "",
+        },
+    ]
+    from cophilo.biblio.synthesize import load_synthesis, save_synthesis
+    json_path, md_path = save_synthesis(
+        cfg,
+        "philosophy of memory, forgetting, extended mind",
+        "memory forgetting",
+        _canned_synthesis(),
+        entries,
+        venues=venues,
+    )
+    md = md_path.read_text(encoding="utf-8")
+    assert "## Candidate venues" in md
+    assert "Mind & Language" in md
+    assert "score 0.78" in md
+    # Round-trips through load_synthesis:
+    loaded = load_synthesis(json_path)
+    assert len(loaded.venues) == 2
+    assert loaded.venues[0]["name"] == "Mind & Language"
+
+
+def test_synthesize_venue_lookup_no_op_when_index_missing(isolated_data_dir):
+    """The cross-link is best-effort: if `memory.search` raises
+    FileNotFoundError (no index built), `candidate_venues` returns [] and
+    `save_synthesis` keeps working without it."""
+    from cophilo.biblio.synthesize import (
+        candidate_venues,
+        load_synthesis,
+        save_synthesis,
+    )
+    cfg = isolated_data_dir
+    # The fixture has no journals.yaml or memory.sqlite, so the search must
+    # fail soft. candidate_venues returns [] without raising.
+    assert candidate_venues(cfg, "any topic") == []
+    json_path, md_path = save_synthesis(
+        cfg, "topic", "query", _canned_synthesis(),
+        parse_feed(FIXTURE.read_text(encoding="utf-8")),
+    )
+    md = md_path.read_text(encoding="utf-8")
+    # No venues → no Candidate venues section is rendered.
+    assert "## Candidate venues" not in md
+    # JSON has a venues key but it's empty.
+    loaded = load_synthesis(json_path)
+    assert loaded.venues == []
 
 
 def test_cli_biblio_synthesize_needs_topic(isolated_data_dir):

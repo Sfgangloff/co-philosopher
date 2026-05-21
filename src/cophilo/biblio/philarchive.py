@@ -57,6 +57,25 @@ _AUTHOR_SPLIT_RE = re.compile(r"\s*;\s*|\s+&\s+")
 # (".. 2017This chapter .."), so we can't require a trailing word boundary.
 # Anchor on a non-digit before a plausible 1500–2099 year instead.
 _YEAR_RE = re.compile(r"(?<!\d)(1[5-9]\d{2}|20\d{2})(?!\d)")
+# Unpublished-status preambles glue to the abstract just like the year does
+# ("_Synthese_ forthcomingThis paper …"), so — exactly like the year — there
+# is no trailing word boundary; the glue is detected separately.
+_STATUS_RE = re.compile(
+    r"\b(forthcoming|in press|online first|manuscript|preprint|under review)",
+    re.IGNORECASE,
+)
+
+
+def _split_status(text: str) -> str | None:
+    """If ``text`` opens with a status token (possibly glued to the abstract,
+    "forthcomingThis …"), return the abstract after it; else None."""
+    sm = _STATUS_RE.match(text)
+    if not sm:
+        return None
+    after = text[sm.end() : sm.end() + 1]
+    if after and after.islower():
+        return None  # part of a longer word ("manuscripts") — not a status
+    return text[sm.end() :].lstrip(" .—-:)(")
 
 
 _TAG_RE = re.compile(r"<[^>]+>")
@@ -112,12 +131,42 @@ def _parse_description(raw: str) -> tuple[str | None, int | None, str | None]:
 
     year: int | None = None
     abstract = rest
-    # The citation year, when present, sits in the first ~60 chars right
-    # before the abstract (e.g. "48 (1):156-178. 2014I argue that...").
-    m = _YEAR_RE.search(rest[:60])
-    if m and (journal is not None or m.start() <= 20):
-        year = int(m.group(1))
-        abstract = rest[m.end() :].lstrip(" .—-:")
+    # The citation year sits at the metadata/abstract boundary, typically as
+    # ". <YEAR><Uppercase>" (the missing space is how PhilArchive's feed
+    # delivers it). The block can be long (chapter with multiple editors), so
+    # we scan the whole string rather than capping at 60 chars — but we only
+    # accept matches that look like a *boundary*, not a year inside the
+    # abstract itself (e.g. parenthetical "(Cuc et al., 2007This...)").
+    for m in _YEAR_RE.finditer(rest):
+        followed_by_upper = rest[m.end() : m.end() + 1].isupper()
+        preceded_by_period_space = (
+            m.start() >= 2 and rest[m.start() - 2 : m.start()] == ". "
+        )
+        # When a journal prefix was present, a year right at the start of
+        # the rest (e.g. "_J_ 2020Abstract") is also a clean boundary.
+        at_journal_start = journal is not None and m.start() <= 20
+        if followed_by_upper and (preceded_by_period_space or at_journal_start):
+            year = int(m.group(1))
+            abstract = rest[m.end() :].lstrip(" .—-:")
+            break
+    else:
+        # No parseable year, but a status token ("forthcoming…") may be glued
+        # to the abstract; cut it so the abstract doesn't start mid-citation.
+        stripped = _split_status(rest)
+        if stripped is not None:
+            abstract = stripped
+
+    # A status token can also survive in front of the year-split abstract
+    # ("Synthese forthcoming 2025Body" → "forthcoming Body"); drop it.
+    stripped = _split_status(abstract.strip())
+    if stripped is not None:
+        abstract = stripped
+
+    # Cosmetic: parenthetical in-text citations sometimes survive as
+    # "(…, 2007This experiment…)" with no space between the year and the
+    # following word. Insert one. Year-then-uppercase is essentially never
+    # prose, so this is safe.
+    abstract = re.sub(r"\b(1[5-9]\d{2}|20\d{2})([A-Z])", r"\1 \2", abstract)
 
     abstract = abstract.strip() or None
     return journal, year, abstract

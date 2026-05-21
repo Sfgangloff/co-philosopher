@@ -15,8 +15,15 @@ from pathlib import Path
 import frontmatter
 
 from cophilo.biblio import philarchive
-from cophilo.biblio.schemas import BiblioEntry
-from cophilo.biblio.synthesize import format_entries
+from cophilo.biblio.schemas import BiblioEntry, TopicSynthesis
+from cophilo.biblio.synthesize import (
+    LoadedSynthesis,
+    format_entries,
+    format_entries_with_tiers,
+    format_missing_canonical,
+    load_synthesis,
+    synthesis_paths,
+)
 from cophilo.config import Config
 from cophilo.db import models as db
 from cophilo.draft.propose import OUTLINE_NAME, load_prompt
@@ -60,10 +67,24 @@ class ComposeResult:
     tex_path: Path
     query: str
     language: str
+    synthesis_used: Path | None = None
     input_tokens: int = 0
     output_tokens: int = 0
     cache_read_tokens: int = 0
     cache_write_tokens: int = 0
+
+
+def _discover_synthesis(cfg: Config, thesis: str) -> Path | None:
+    """Look for a saved synthesis whose topic matches the draft's thesis.
+
+    The synthesis filename is derived from the topic via ``synthesis_slug``
+    so a topic→thesis match is a deterministic path check. If no exact
+    match, fall through to None (don't second-guess; the user can pass
+    --from-synthesis explicitly)."""
+    if not thesis.strip():
+        return None
+    json_path, _ = synthesis_paths(cfg, thesis)
+    return json_path if json_path.exists() else None
 
 
 def compose_draft(
@@ -75,10 +96,17 @@ def compose_draft(
     query: str | None = None,
     limit: int = 30,
     fetcher: philarchive.Fetcher | None = None,
+    from_synthesis: Path | None = None,
 ) -> ComposeResult:
     """Draft ``article.tex`` for ``draft_dir``.
 
     ``client``/``fetcher`` are injectable so tests need no API or network.
+
+    When ``from_synthesis`` (or an auto-discovered synthesis on disk) is
+    available, the bibliography is **reused** rather than re-queried, and the
+    source-quality verdicts the synthesis already produced are passed into
+    the draft prompt so it can refuse to dress speculative grey literature
+    as scholarly convergence (REPORT.md §1.8 / §2.1).
     """
     draft_dir = draft_dir.resolve()
     if not draft_dir.is_dir():
@@ -101,13 +129,30 @@ def compose_draft(
     combined = "\n\n".join(b for _, b in notes)
     language = language or detect_language(combined, default=cfg.default_language)
 
-    search_query = (
-        (query or thesis or outline_title or combined[:_QUERY_FALLBACK_CHARS])
-        .strip()
-        .replace("\n", " ")
-    )
+    # Bibliography: prefer a saved synthesis (explicit > auto-discovered) over
+    # a fresh PhilArchive query. The synthesis already carries the model's
+    # tier verdicts and missing-canonical list — refetching would lose both.
+    synthesis_path: Path | None = from_synthesis
+    if synthesis_path is None:
+        synthesis_path = _discover_synthesis(cfg, thesis or outline_title or "")
 
-    entries = philarchive.search(cfg, search_query, limit=limit, fetcher=fetcher)
+    loaded: LoadedSynthesis | None = None
+    if synthesis_path is not None and synthesis_path.exists():
+        loaded = load_synthesis(synthesis_path)
+
+    if loaded is not None:
+        entries = loaded.entries
+        search_query = loaded.query or "(reused from synthesis)"
+        synthesis_obj: TopicSynthesis | None = loaded.synthesis
+    else:
+        search_query = (
+            (query or thesis or outline_title or combined[:_QUERY_FALLBACK_CHARS])
+            .strip()
+            .replace("\n", " ")
+        )
+        entries = philarchive.search(cfg, search_query, limit=limit, fetcher=fetcher)
+        synthesis_obj = None
+
     if entries:
         with db.transaction(cfg) as conn:
             for e in entries:
@@ -127,11 +172,25 @@ def compose_draft(
         client = make_client(cfg)
 
     template = load_prompt(language, "draft")
+    if synthesis_obj is not None:
+        entries_block = format_entries_with_tiers(entries, synthesis_obj)
+        missing_block = format_missing_canonical(synthesis_obj)
+        caveats_block = (
+            synthesis_obj.corpus_caveats.strip()
+            or "(no corpus caveats flagged — bibliography is solid on the topic)"
+        )
+    else:
+        entries_block = format_entries(entries)
+        missing_block = "(no synthesis available — proceed cautiously with the abstracts you have)"
+        caveats_block = "(no synthesis available — be honest about what the bibliography below cannot support)"
+
     system = template.format(
         thesis=thesis or "(none provided — infer from the notes)",
         outline=outline_text or "(none provided — propose your own structure)",
         notes=notes_block,
-        entries=format_entries(entries),
+        entries=entries_block,
+        missing_canonical=missing_block,
+        corpus_caveats=caveats_block,
         language=language,
     )
     user = (
@@ -156,6 +215,7 @@ def compose_draft(
         tex_path=tex_path,
         query=search_query,
         language=language,
+        synthesis_used=synthesis_path if loaded is not None else None,
         input_tokens=result.input_tokens,
         output_tokens=result.output_tokens,
         cache_read_tokens=result.cache_read_tokens,

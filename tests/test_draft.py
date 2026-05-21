@@ -232,6 +232,170 @@ def test_compose_draft_writes_tex_and_persists_biblio(isolated_data_dir):
     assert "PAP failure motivates sourcehood" in fake.calls[0]["system"]
 
 
+def test_compose_reuses_synthesis_and_skips_philarchive(isolated_data_dir):
+    """§1.3 — when a synthesis JSON exists for the thesis, compose_draft
+    must reuse it instead of re-querying PhilArchive, and must thread the
+    tier verdicts + missing-canonical + corpus_caveats into the prompt.
+    This is the single fix the philosopher named as the blocker (§1.8)."""
+    from cophilo.biblio import philarchive as pa
+    from cophilo.biblio.schemas import (
+        BiblioEntry,
+        MissingCanonical,
+        SourceJudgement,
+        TopicSynthesis,
+    )
+    from cophilo.biblio.synthesize import save_synthesis
+
+    cfg = isolated_data_dir
+    draft_dir = cfg.corpus_drafts_dir / "forgetting-as-constitutive"
+    draft_dir.mkdir(parents=True)
+    note = frontmatter.Post(
+        "Forgetting is not a defect of memory but a constitutive condition of thought.",
+        title="Forgetting", kind="note",
+    )
+    (draft_dir / "n.md").write_text(frontmatter.dumps(note) + "\n", encoding="utf-8")
+    outline = frontmatter.Post(
+        "## Thesis\n\nForgetting is not a defect but a condition of thought.\n\n## Outline\n\n1. Intro\n",
+        title="Forgetting Well",
+        kind="draft",
+    )
+    (draft_dir / "OUTLINE.md").write_text(
+        frontmatter.dumps(outline) + "\n", encoding="utf-8"
+    )
+
+    # Save a synthesis matching the thesis — auto-discovery should find it.
+    entries = [
+        BiblioEntry(
+            source="philarchive",
+            external_id="MICHEXM",
+            title="Is external memory memory?",
+            authors=["Michaelian, K."],
+            journal="Synthese",
+            year=2012,
+            abstract="External memory fails the Clark-Chalmers criteria.",
+            url="https://philarchive.org/rec/MICHEXM",
+        ),
+        BiblioEntry(
+            source="philarchive",
+            external_id="NOURFRINGE",
+            title="Metabolic mind and exocortex",
+            authors=["Nourizadeh"],
+            journal=None,
+            year=2024,
+            abstract="A speculative metabolic account of cognition.",
+            url="https://philarchive.org/rec/NOURFRINGE",
+        ),
+        BiblioEntry(
+            source="philarchive",
+            external_id="LIUSERIES",
+            title="Third-Order Entity Series, Paper 9",
+            authors=["Liu"],
+            journal=None,
+            year=2024,
+            abstract="An esoteric framework.",
+            url="https://philarchive.org/rec/LIUSERIES",
+        ),
+    ]
+    synthesis = TopicSynthesis(
+        overview="Two clusters dominate the discussion.",
+        big_questions=["Does forgetting constitute thought?"],
+        small_questions=[],
+        key_works=[],
+        suggested_searches=[],
+        source_judgements=[
+            SourceJudgement(
+                external_id="MICHEXM",
+                tier="peer_reviewed",
+                rationale="Synthese is a recognised venue.",
+                cite_as="primary",
+            ),
+            SourceJudgement(
+                external_id="NOURFRINGE",
+                tier="speculative",
+                rationale="Self-published, no peer review.",
+                cite_as="background",
+            ),
+            SourceJudgement(
+                external_id="LIUSERIES",
+                tier="speculative",
+                rationale="Manifestly fringe single-author series.",
+                cite_as="do_not_cite",
+            ),
+        ],
+        missing_canonical=[
+            MissingCanonical(
+                author="Anderson, M.",
+                work_hint="adaptive forgetting",
+                why="Standard empirical reference omitted.",
+            ),
+        ],
+        corpus_caveats=(
+            "The corpus is thin on the empirical side and several "
+            "best-matching items are self-published rather than peer-reviewed."
+        ),
+    )
+    save_synthesis(
+        cfg, "Forgetting is not a defect but a condition of thought.",
+        "forgetting condition of thought", synthesis, entries,
+    )
+
+    # PhilArchive must NOT be called at all when a synthesis is reused.
+    def boom(*args, **kwargs):
+        raise AssertionError("philarchive.search should not be called when a synthesis is reused")
+
+    monkey_search_original = pa.search
+    pa.search = boom  # type: ignore[assignment]
+    try:
+        fake = FakeClient(_canned_draft())
+        result = compose_draft(cfg, draft_dir, client=fake, language="en")
+    finally:
+        pa.search = monkey_search_original  # type: ignore[assignment]
+
+    # The synthesis was used:
+    assert result.synthesis_used is not None
+    assert result.synthesis_used.exists()
+    assert result.query == "forgetting condition of thought"
+    # The reused entries (minus do_not_cite) make it to the prompt:
+    system = fake.calls[0]["system"]
+    # Tier tags surface so the model knows what to lead with:
+    assert "[PEER_REVIEWED" in system or "[peer_reviewed" in system.lower()
+    assert "MICHEXM" in system
+    # The do_not_cite entry is QUARANTINED out of the entries block:
+    assert "LIUSERIES" not in system
+    # The corpus caveats are threaded into the prompt:
+    assert "thin on the empirical side" in system
+    # The missing-canonical author is named so the draft can flag it:
+    assert "Anderson" in system
+    # And the anti-convergence rule was injected (from the prompt update):
+    assert "convergence" in system.lower() or "converges" in system.lower()
+
+
+def test_compose_falls_through_to_philarchive_without_synthesis(isolated_data_dir):
+    """§1.3 — when no synthesis exists for the thesis, the legacy behaviour
+    holds: PhilArchive is queried fresh from the thesis."""
+    cfg = isolated_data_dir
+    draft_dir = cfg.corpus_drafts_dir / "no-synthesis-yet"
+    draft_dir.mkdir(parents=True)
+    note = frontmatter.Post("Frankfurt cases.", title="x", kind="note")
+    (draft_dir / "n.md").write_text(frontmatter.dumps(note) + "\n", encoding="utf-8")
+    outline = frontmatter.Post(
+        "## Thesis\n\nA thesis with no prior synthesis.\n\n## Outline\n\n1. Intro\n",
+        title="No Synthesis", kind="draft",
+    )
+    (draft_dir / "OUTLINE.md").write_text(
+        frontmatter.dumps(outline) + "\n", encoding="utf-8"
+    )
+    fake = FakeClient(_canned_draft())
+    result = compose_draft(cfg, draft_dir, client=fake, fetcher=FakeFetcher(), language="en")
+    # No synthesis used → fresh PhilArchive query:
+    assert result.synthesis_used is None
+    assert len(result.entries) == 3  # the fixture's three works
+    # Without tier verdicts, the prompt still includes the anti-convergence
+    # rule (it's a hard rule for the model regardless).
+    system = fake.calls[0]["system"]
+    assert "convergence" in system.lower() or "converges" in system.lower()
+
+
 def test_compose_rejects_empty_folder(isolated_data_dir):
     cfg = isolated_data_dir
     empty = cfg.corpus_drafts_dir / "empty"
@@ -245,6 +409,31 @@ def test_render_tex_escaping_unit():
     tex = render_tex(_canned_draft(), language="fr")
     assert r"\usepackage[french]{babel}" in tex
     assert tex.strip().endswith(r"\end{document}")
+
+
+def test_render_tex_strips_model_supplied_section_numbers():
+    """§4.5 — `\\section{1. Introduction…}` + LaTeX auto-numbering rendered
+    "1 1. Introduction" in the philosopher's draft. Strip the prefix."""
+    draft = ArticleDraft(
+        title="t",
+        abstract="a",
+        keywords=[],
+        sections=[
+            DraftSection(heading="1. Introduction: Funes & the trap", body="x"),
+            DraftSection(heading="2.1. Subsection", body="y"),
+            DraftSection(heading="III. Roman numbered", body="z"),
+            DraftSection(heading="Plain heading", body="w"),
+        ],
+        references=[],
+    )
+    tex = render_tex(draft)
+    assert r"\section{Introduction: Funes \& the trap}" in tex
+    assert r"\section{Subsection}" in tex
+    assert r"\section{Roman numbered}" in tex
+    assert r"\section{Plain heading}" in tex
+    # And no "1. " leaks past as a heading prefix:
+    assert r"\section{1." not in tex
+    assert r"\section{2.1." not in tex
 
 
 # --- CLI -----------------------------------------------------------------

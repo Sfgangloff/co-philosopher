@@ -30,6 +30,7 @@ class Config:
     corpus_drafts_dir: Path
     normalized_dir: Path
     rendered_dir: Path
+    syntheses_dir: Path
     db_path: Path
     memory_db_path: Path
     memory_embedding_model: str
@@ -65,6 +66,7 @@ def get_config() -> Config:
         corpus_drafts_dir=data_dir / "corpus" / "drafts",
         normalized_dir=data_dir / "normalized",
         rendered_dir=data_dir / "rendered",
+        syntheses_dir=data_dir / "syntheses",
         db_path=db_path,
         memory_db_path=memory_db_path,
         memory_embedding_model=os.environ.get(
@@ -97,6 +99,7 @@ def ensure_dirs(cfg: Config) -> None:
         cfg.corpus_drafts_dir,
         cfg.normalized_dir,
         cfg.rendered_dir,
+        cfg.syntheses_dir,
         cfg.db_path.parent,
     ):
         p.mkdir(parents=True, exist_ok=True)

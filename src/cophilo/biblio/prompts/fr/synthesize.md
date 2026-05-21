@@ -24,6 +24,28 @@ hors sujet, dites-le clairement dans l'aperçu.
    expliquant leur importance.
 5. **suggested_searches** — 3 à 6 requêtes de recherche affinées pour élargir
    ou préciser cette bibliographie.
+6. **source_judgements** — **une entrée par travail extrait** (chaque `[N]`
+   ci-dessous doit apparaître, référencé par son `external_id`). Pour chacune :
+   - `tier` : `canonical` (référence standard du champ), `peer_reviewed`
+     (publié dans une revue reconnue), `speculative` (preprint, ouvrage
+     manifestement auto-publié, ou marginal), ou `off_topic` (extrait mais
+     en réalité hors sujet).
+   - `cite_as` : `primary` (mener l'argument avec), `supporting` (citer en
+     appui), `background` (citer une fois pour le contexte), ou `do_not_cite`
+     (ignorer en aval).
+   - `rationale` : une phrase — revue, statut de l'auteur, peer review,
+     adéquation thématique.
+   Soyez honnête. Un travail hétérodoxe, auto-publié, ou un même auteur répété
+   est `speculative`, non `peer_reviewed`, même si c'est l'appariement le
+   plus proche par mots-clés.
+7. **missing_canonical** — auteurs canoniques ou lignes de travaux clairement
+   au cœur du sujet mais que le corpus extrait n'a pas surfacés. Chacun comme
+   `{{author, work_hint, why}}`. Laisser vide seulement si le corpus est
+   réellement complet.
+8. **corpus_caveats** — un court paragraphe : à quel point le corpus extrait
+   est mince ou inégal sur le cadrage spécifique de l'utilisateur, et quels
+   parmi les meilleurs appariements sont hétérodoxes ou auto-publiés. Si le
+   corpus est solide, dites-le simplement.
 
 Soyez précis et concis. Privilégiez le cadrage de l'utilisateur, mais signalez
 les tensions entre ce cadrage et ce que la littérature met réellement en avant.

@@ -7,7 +7,13 @@ external ``.bib`` so the file compiles with a bare ``pdflatex`` run.
 
 from __future__ import annotations
 
+import re
+
 from cophilo.draft.schemas import ArticleDraft
+
+# Strip a leading "1." / "1.2." / "I." so a model-supplied numbered heading
+# doesn't render as "1 1. Introduction" once LaTeX auto-numbers \section.
+_HEADING_NUMBER_PREFIX = re.compile(r"^\s*(?:\d+(?:\.\d+)*|[IVXLCDM]+)\s*[.)]\s+")
 
 _TEX_SPECIALS = {
     "\\": r"\textbackslash{}",
@@ -63,7 +69,8 @@ def render_tex(draft: ArticleDraft, *, language: str = "en") -> str:
         lines += [r"\noindent\textbf{Keywords:} " + kw + ".", ""]
 
     for s in draft.sections:
-        lines.append(r"\section{" + tex_escape(s.heading) + "}")
+        heading = _HEADING_NUMBER_PREFIX.sub("", s.heading).strip() or s.heading
+        lines.append(r"\section{" + tex_escape(heading) + "}")
         lines.append(_paragraphs(s.body))
         lines.append("")
 

@@ -11,7 +11,11 @@ import typer
 from cophilo.backup import DEFAULT_REPO_NAME, BackupError, backup_corpus
 from cophilo.biblio import philarchive
 from cophilo.biblio.schemas import BiblioEntry
-from cophilo.biblio.synthesize import render_markdown, synthesize_topic
+from cophilo.biblio.synthesize import (
+    render_markdown,
+    save_synthesis,
+    synthesize_topic,
+)
 from cophilo.config import ensure_dirs, get_config
 from cophilo.db import models as db
 from cophilo.draft import accept_proposal, compose_draft, propose_articles
@@ -285,9 +289,26 @@ def draft(
     query: str = typer.Option(None, "--query", "-q", help="PhilArchive query (default: the draft's thesis)"),
     lang: str = typer.Option(None, "--lang", help="Article language: en | fr (default: auto)"),
     limit: int = typer.Option(30, "--limit", "-n", help="Max bibliography works to retrieve"),
+    from_synthesis: Path = typer.Option(
+        None,
+        "--from-synthesis",
+        exists=True,
+        readable=True,
+        dir_okay=False,
+        help=(
+            "Reuse a saved synthesis JSON (data/syntheses/<slug>.json) as the "
+            "bibliography. Inherits the source-quality verdicts so the draft "
+            "won't dress speculative grey literature as scholarly convergence."
+        ),
+    ),
 ) -> None:
-    """Draft an article (.tex) for a draft folder: pull a PhilArchive
-    bibliography from the thesis and have Claude write it from your notes."""
+    """Draft an article (.tex) for a draft folder.
+
+    If a synthesis for the draft's thesis was saved (via `cophilo biblio
+    synthesize`), it is reused automatically — the bibliography is *not*
+    re-fetched and the source-quality verdicts are carried into the draft
+    prompt. Otherwise a fresh PhilArchive query is made from the thesis.
+    Pass `--from-synthesis <path>` to point at a specific saved synthesis."""
     cfg = get_config()
     ensure_dirs(cfg)
     db.init_db(cfg)
@@ -298,12 +319,28 @@ def draft(
 
     typer.echo(f"Drafting from {draft_dir} …", err=True)
     try:
-        result = compose_draft(cfg, draft_dir, language=lang, query=query, limit=limit)
+        result = compose_draft(
+            cfg,
+            draft_dir,
+            language=lang,
+            query=query,
+            limit=limit,
+            from_synthesis=from_synthesis,
+        )
     except ValueError as e:
         typer.echo(str(e), err=True)
         raise typer.Exit(code=1) from e
 
-    typer.echo(f"Bibliography query: '{result.query}' — {len(result.entries)} work(s).")
+    if result.synthesis_used is not None:
+        typer.echo(
+            f"Reused synthesis: {result.synthesis_used.name} — "
+            f"{len(result.entries)} work(s), with tier verdicts.",
+            err=True,
+        )
+    else:
+        typer.echo(
+            f"Bibliography query: '{result.query}' — {len(result.entries)} work(s)."
+        )
     typer.echo(
         f"Wrote {result.tex_path}  "
         f"({len(result.draft.sections)} sections, {len(result.draft.references)} refs, "
@@ -577,7 +614,17 @@ def biblio_synthesize(
         typer.echo(str(e), err=True)
         raise typer.Exit(code=1) from e
 
-    md = render_markdown(topic_text, search_query, result.synthesis, entries)
+    # Persist to the canonical location so `cophilo draft` can reuse the
+    # source-quality verdicts without re-billing PhilArchive / Claude. The
+    # save_synthesis call also looks up candidate venues from the local
+    # memory index (silently no-ops if not built).
+    ensure_dirs(cfg)
+    json_path, md_path = save_synthesis(
+        cfg, topic_text, search_query, result.synthesis, entries
+    )
+    md = md_path.read_text(encoding="utf-8")
+    typer.echo(f"Saved synthesis: {json_path}", err=True)
+    typer.echo(f"             md: {md_path}", err=True)
     if out is not None:
         out.write_text(md, encoding="utf-8")
         typer.echo(f"Wrote {out}", err=True)
