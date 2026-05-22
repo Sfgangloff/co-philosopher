@@ -339,6 +339,145 @@ def questions(
             _wrap_field("      ", r["description"].strip())
 
 
+def _concept_label(row) -> str:
+    return row["canonical_label_en"] or row["canonical_label_fr"] or row["slug"]
+
+
+def _pair_label(row, side: str) -> str:
+    """Format an ``a_`` or ``b_`` side of a co-occurrence row as a label."""
+    return (
+        row[f"{side}_en"]
+        or row[f"{side}_fr"]
+        or row[f"{side}_slug"]
+    )
+
+
+@app.command()
+def graph(
+    name: str = typer.Argument(
+        None,
+        help="Optional: a concept name / slug to drill into. Omit for the corpus-wide overview.",
+    ),
+    limit: int = typer.Option(15, "--limit", "-n", help="Max rows per section"),
+    min_shared: int = typer.Option(
+        2,
+        "--min-shared",
+        help="Minimum shared documents to surface a co-occurring pair (overview only)",
+    ),
+    as_json: bool = typer.Option(False, "--json", "-j", help="Emit JSON"),
+) -> None:
+    """The cross-document concept graph: what your notes are actually *about*.
+
+    Without an argument, prints the corpus-wide overview — top concepts by
+    document spread, top co-occurring pairs. With a concept name or slug,
+    drills into that concept: the documents it appears in, the concepts
+    that share those documents, and the questions raised in them.
+
+    `cophilo concepts` flat-lists per-doc; this is the dual — the graph
+    *across* notes (REPORT.md §2.3)."""
+    cfg = get_config()
+    db.init_db(cfg)
+    with db.transaction(cfg) as conn:
+        if name is None:
+            spread = db.list_concepts_with_spread(conn)[:limit]
+            pairs = db.concept_co_occurrences(
+                conn, min_shared=min_shared, limit=limit
+            )
+            if as_json:
+                payload = {
+                    "concepts": [dict(r) for r in spread],
+                    "co_occurrences": [dict(r) for r in pairs],
+                }
+                typer.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+                return
+            if not spread:
+                typer.echo(
+                    "No confirmed concepts yet. Run `cophilo extract`, then "
+                    "confirm proposals to promote them."
+                )
+                return
+            typer.echo(
+                f"Top concepts by document spread ({len(spread)}):\n"
+                f"  docs × mentions   concept"
+            )
+            for r in spread:
+                label = _concept_label(r)
+                typer.echo(
+                    f"  {r['doc_count']:>4} × {r['mentions']:<7}  "
+                    f"{label}  ({r['slug']})"
+                )
+            if pairs:
+                typer.echo(
+                    f"\nTop co-occurring concept pairs "
+                    f"(≥{min_shared} shared documents):\n"
+                )
+                for p in pairs:
+                    a, b = _pair_label(p, "a"), _pair_label(p, "b")
+                    typer.echo(f"  [{p['shared']:>3} doc(s)] {a}  ↔  {b}")
+            else:
+                typer.echo(
+                    f"\nNo concept pairs share ≥{min_shared} documents yet. "
+                    "Lower --min-shared or capture more notes."
+                )
+            return
+
+        # --- drill into one concept ------------------------------------------
+        concept = db.find_concept(conn, name)
+        if concept is None:
+            typer.echo(
+                f"No confirmed concept matching {name!r}. "
+                "Try `cophilo concepts` to see what's there.",
+                err=True,
+            )
+            raise typer.Exit(code=1)
+        docs = db.concept_docs(conn, concept["id"])
+        neighbors = db.concept_neighbors(conn, concept["id"], limit=limit)
+        qs = db.concept_questions(conn, concept["id"], limit=limit)
+
+    if as_json:
+        typer.echo(
+            json.dumps(
+                {
+                    "concept": dict(concept),
+                    "documents": [dict(r) for r in docs],
+                    "neighbors": [dict(r) for r in neighbors],
+                    "questions": [dict(r) for r in qs],
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return
+
+    label = _concept_label(concept)
+    typer.echo(f"Concept: {label}  ({concept['slug']}, {concept['kind']})")
+    if concept["description"]:
+        _wrap_field("  ", concept["description"].strip())
+    typer.echo("")
+    if docs:
+        typer.echo(f"Appears in {len(docs)} document(s):")
+        for d in docs:
+            title = d["title"] or Path(d["source_path"]).name
+            typer.echo(f"  [{d['mentions']:>3}×] #{d['id']:04d}  ({d['kind']})  {title}")
+    else:
+        typer.echo("Appears in no documents (no mentions on file).")
+    if neighbors:
+        typer.echo(
+            f"\nCo-occurring concepts ({len(neighbors)}) — concepts in the "
+            "same documents:"
+        )
+        for n in neighbors:
+            nl = n["canonical_label_en"] or n["canonical_label_fr"] or n["slug"]
+            typer.echo(f"  [{n['shared_docs']:>3} doc(s)] {nl}  ({n['slug']})")
+    if qs:
+        typer.echo(
+            f"\nQuestions raised in those documents ({len(qs)}):"
+        )
+        for q in qs:
+            flag = "" if q["status"] == "open" else f" [{q['status']}]"
+            typer.echo(f"  [{q['docs']:>3} doc(s)]{flag} {q['label']}")
+
+
 @app.command()
 def dialog(
     topic: str = typer.Option(None, "--topic", "-t", help="Group this session under a topic (used in the filename/title)"),

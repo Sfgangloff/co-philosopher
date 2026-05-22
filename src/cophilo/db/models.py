@@ -242,6 +242,189 @@ def list_questions(
     ).fetchall()
 
 
+# --- Cross-document concept graph (§2.3) -----------------------------------
+
+
+def list_concepts_with_spread(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    """Confirmed concepts ordered by cross-document spread (then mentions).
+
+    REPORT.md §2.3 — the value of `extract` is the *graph between concepts
+    across notes*, not a flat per-doc list. ``doc_count`` is what surfaces
+    that: a concept mentioned twenty times in one note matters less to the
+    project than one mentioned twice in five distinct notes."""
+    return conn.execute(
+        """
+        SELECT c.id, c.slug, c.canonical_label_en, c.canonical_label_fr,
+               c.kind, c.description,
+               COUNT(cm.id) AS mentions,
+               COUNT(DISTINCT p.document_id) AS doc_count
+        FROM concepts c
+        LEFT JOIN concept_mentions cm ON cm.concept_id = c.id
+        LEFT JOIN passages p ON p.id = cm.passage_id
+        WHERE c.status = 'confirmed'
+        GROUP BY c.id
+        ORDER BY doc_count DESC, mentions DESC, c.slug;
+        """
+    ).fetchall()
+
+
+def concept_co_occurrences(
+    conn: sqlite3.Connection, *, min_shared: int = 2, limit: int = 20
+) -> list[sqlite3.Row]:
+    """Pairs of confirmed concepts that share at least ``min_shared``
+    documents. Co-occurrence at *document* (not passage) level — the
+    project-relevant notion of "two notes converging on the same pair"."""
+    return conn.execute(
+        """
+        WITH concept_doc AS (
+            SELECT DISTINCT cm.concept_id, p.document_id
+            FROM concept_mentions cm
+            JOIN passages p ON p.id = cm.passage_id
+            JOIN concepts c ON c.id = cm.concept_id
+            WHERE c.status = 'confirmed'
+        ),
+        pairs AS (
+            SELECT a.concept_id AS a_id, b.concept_id AS b_id,
+                   COUNT(*) AS shared
+            FROM concept_doc a
+            JOIN concept_doc b
+              ON b.document_id = a.document_id AND a.concept_id < b.concept_id
+            GROUP BY a.concept_id, b.concept_id
+            HAVING COUNT(*) >= ?
+        )
+        SELECT p.a_id, p.b_id, p.shared,
+               ca.slug AS a_slug, ca.canonical_label_en AS a_en,
+               ca.canonical_label_fr AS a_fr,
+               cb.slug AS b_slug, cb.canonical_label_en AS b_en,
+               cb.canonical_label_fr AS b_fr
+        FROM pairs p
+        JOIN concepts ca ON ca.id = p.a_id
+        JOIN concepts cb ON cb.id = p.b_id
+        ORDER BY p.shared DESC, ca.slug, cb.slug
+        LIMIT ?;
+        """,
+        (min_shared, limit),
+    ).fetchall()
+
+
+def find_concept(conn: sqlite3.Connection, query: str) -> sqlite3.Row | None:
+    """Best-effort lookup by slug, English label, or French label.
+
+    Tries exact-slug, then exact-label (either language), then substring on
+    any of them. Returns the first match (or ``None``)."""
+    q = query.strip().lower()
+    if not q:
+        return None
+    # Exact slug — the canonical id.
+    row = conn.execute(
+        "SELECT * FROM concepts WHERE LOWER(slug) = ? AND status = 'confirmed' LIMIT 1;",
+        (q,),
+    ).fetchone()
+    if row is not None:
+        return row
+    # Exact canonical label, either language.
+    row = conn.execute(
+        """
+        SELECT * FROM concepts
+        WHERE (LOWER(canonical_label_en) = ? OR LOWER(canonical_label_fr) = ?)
+          AND status = 'confirmed'
+        LIMIT 1;
+        """,
+        (q, q),
+    ).fetchone()
+    if row is not None:
+        return row
+    # Substring fallback.
+    like = f"%{q}%"
+    return conn.execute(
+        """
+        SELECT * FROM concepts
+        WHERE (LOWER(slug) LIKE ?
+            OR LOWER(canonical_label_en) LIKE ?
+            OR LOWER(canonical_label_fr) LIKE ?)
+          AND status = 'confirmed'
+        ORDER BY slug
+        LIMIT 1;
+        """,
+        (like, like, like),
+    ).fetchone()
+
+
+def concept_docs(conn: sqlite3.Connection, concept_id: int) -> list[sqlite3.Row]:
+    """Documents that mention a concept, with the per-doc mention count."""
+    return conn.execute(
+        """
+        SELECT d.id, d.title, d.source_path, d.kind,
+               COUNT(cm.id) AS mentions
+        FROM documents d
+        JOIN passages p ON p.document_id = d.id
+        JOIN concept_mentions cm ON cm.passage_id = p.id
+        WHERE cm.concept_id = ?
+        GROUP BY d.id
+        ORDER BY mentions DESC, d.title;
+        """,
+        (concept_id,),
+    ).fetchall()
+
+
+def concept_neighbors(
+    conn: sqlite3.Connection, concept_id: int, *, limit: int = 10
+) -> list[sqlite3.Row]:
+    """Confirmed concepts that share documents with this one, ranked by
+    how many documents they co-appear in."""
+    return conn.execute(
+        """
+        WITH our_docs AS (
+            SELECT DISTINCT p.document_id
+            FROM concept_mentions cm
+            JOIN passages p ON p.id = cm.passage_id
+            WHERE cm.concept_id = ?
+        )
+        SELECT c.id, c.slug, c.canonical_label_en, c.canonical_label_fr,
+               COUNT(DISTINCT p.document_id) AS shared_docs
+        FROM concepts c
+        JOIN concept_mentions cm ON cm.concept_id = c.id
+        JOIN passages p ON p.id = cm.passage_id
+        WHERE p.document_id IN (SELECT document_id FROM our_docs)
+          AND c.id != ?
+          AND c.status = 'confirmed'
+        GROUP BY c.id
+        ORDER BY shared_docs DESC, c.slug
+        LIMIT ?;
+        """,
+        (concept_id, concept_id, limit),
+    ).fetchall()
+
+
+def concept_questions(
+    conn: sqlite3.Connection, concept_id: int, *, limit: int = 10
+) -> list[sqlite3.Row]:
+    """Questions raised in the same documents where a concept appears.
+
+    Surfaces the "which questions does this concept push you toward?" view
+    — the cross-doc dual of `cophilo questions --doc <id>`."""
+    return conn.execute(
+        """
+        WITH our_docs AS (
+            SELECT DISTINCT p.document_id
+            FROM concept_mentions cm
+            JOIN passages p ON p.id = cm.passage_id
+            WHERE cm.concept_id = ?
+        )
+        SELECT q.id, q.label, q.status,
+               COUNT(DISTINCT p.document_id) AS docs
+        FROM questions q
+        JOIN question_mentions qm ON qm.question_id = q.id
+        JOIN passages p ON p.id = qm.passage_id
+        WHERE p.document_id IN (SELECT document_id FROM our_docs)
+        GROUP BY q.id
+        ORDER BY docs DESC, q.label
+        LIMIT ?;
+        """,
+        (concept_id, limit),
+    ).fetchall()
+
+
 # --- Bibliography ----------------------------------------------------------
 
 
