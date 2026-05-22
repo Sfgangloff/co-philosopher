@@ -190,6 +190,143 @@ def test_appended_notes_have_single_blank_line_separator(isolated_data_dir):
     assert "First note paragraph one.\n\nSecond committed note.\n\nThird committed note." in body
 
 
+# --- §3 opt-in socratic interlocutor ---------------------------------------
+
+
+class _FakeClient:
+    """Records `.call(...)` invocations and returns a canned SocraticQuestion."""
+
+    def __init__(self, question_text: str = "What grounds the modal claim?"):
+        from cophilo.extract.claude import ExtractionResult
+        from cophilo.notes.schemas import SocraticQuestion
+
+        self._parsed = SocraticQuestion(question=question_text)
+        self._ExtractionResult = ExtractionResult
+        self.calls: list[dict] = []
+
+    def call(self, *, model, system, user, response_model, max_tokens):
+        self.calls.append({"system": system, "user": user, "model": model})
+        return self._ExtractionResult(
+            parsed=self._parsed,
+            cache_read_tokens=1,
+            cache_write_tokens=2,
+            input_tokens=3,
+            output_tokens=4,
+        )
+
+
+def test_socratic_question_helper_calls_claude_and_returns_parsed(isolated_data_dir):
+    """`socratic_question` shapes the call (system prompt with language;
+    user message is the note) and returns the parsed pydantic model."""
+    from cophilo.notes.capture import socratic_question
+
+    fake = _FakeClient("Are you smuggling 'memory' for 'recall'?")
+    q = socratic_question(
+        isolated_data_dir,
+        "Forgetting is constitutive of concept-formation.",
+        language="en",
+        client=fake,
+    )
+    assert q.question == "Are you smuggling 'memory' for 'recall'?"
+    assert len(fake.calls) == 1
+    sys = fake.calls[0]["system"]
+    user = fake.calls[0]["user"]
+    # Prompt makes the "no summary / no affirmation" contract explicit:
+    assert "do not produce" in sys.lower() or "à ne pas produire" in sys.lower()
+    assert "Forgetting is constitutive" in user
+    # Routine (cheap) model is used for the per-commit ping:
+    assert fake.calls[0]["model"] == isolated_data_dir.claude_model_routine
+
+
+def test_run_dialog_socratic_echoes_after_each_commit_and_does_not_save_question(
+    isolated_data_dir,
+):
+    """§3 — with `socratic=True`, the REPL echoes ONE question after each
+    committed note (one LLM call per commit) and the question never reaches
+    the note file on disk."""
+    cfg = isolated_data_dir
+    fake = _FakeClient("Are you smuggling 'memory' for 'recall'?")
+    script = iter(
+        [
+            "Forgetting is constitutive of concept-formation.",
+            "",  # commit → expect a socratic question
+            "Funes is the limit case.",
+            "",  # commit → expect a second socratic question
+            "/done",
+        ]
+    )
+    out: list[str] = []
+    session = run_dialog(
+        cfg,
+        socratic=True,
+        client=fake,
+        input_fn=lambda _p: next(script),
+        echo=out.append,
+        clock=_CLOCK,
+    )
+
+    # Two commits → two API calls; one question echoed per commit.
+    assert session.total_entries == 2
+    assert len(fake.calls) == 2
+    questions_echoed = [line for line in out if line.lstrip().startswith("?  ")]
+    assert len(questions_echoed) == 2
+    assert all("memory" in q for q in questions_echoed)
+    # Up-front banner warns that this mode bills:
+    assert any("socratic mode" in line for line in out)
+
+    # And the question is NOT written into the note file on disk:
+    body = frontmatter.loads(
+        session.files[0].read_text(encoding="utf-8")
+    ).content
+    assert "smuggling" not in body
+    assert "Forgetting is constitutive" in body and "Funes is the limit case" in body
+
+
+def test_run_dialog_socratic_disabled_when_client_construction_fails(
+    isolated_data_dir, monkeypatch
+):
+    """If `make_client` cannot be built (no API key / no `claude` CLI), the
+    REPL falls back to offline mode and tells the user — never a runtime
+    explosion mid-session."""
+    from cophilo import notes  # ensure namespace import order
+    from cophilo.extract import claude as claude_mod
+
+    def boom(_cfg):
+        raise RuntimeError("ANTHROPIC_API_KEY not set")
+
+    monkeypatch.setattr(claude_mod, "make_client", boom)
+    script = iter(["A note.", "", "/done"])
+    out: list[str] = []
+    session = run_dialog(
+        isolated_data_dir,
+        socratic=True,
+        input_fn=lambda _p: next(script),
+        echo=out.append,
+        clock=_CLOCK,
+    )
+    assert session.total_entries == 1
+    assert any("socratic disabled" in line for line in out)
+    # And no `?` question was echoed:
+    assert not any(line.lstrip().startswith("?  ") for line in out)
+
+
+def test_run_dialog_socratic_off_by_default_no_llm_calls(isolated_data_dir):
+    """The default REPL stays offline. Passing a client without `socratic=True`
+    must not result in any LLM calls — the offline-default invariant."""
+    fake = _FakeClient()
+    script = iter(["A note.", "", "/done"])
+    out: list[str] = []
+    run_dialog(
+        isolated_data_dir,
+        client=fake,
+        input_fn=lambda _p: next(script),
+        echo=out.append,
+        clock=_CLOCK,
+    )
+    assert fake.calls == []
+    assert not any("socratic mode" in line for line in out)
+
+
 def test_capture_then_ingest_roundtrip(isolated_data_dir):
     cfg = isolated_data_dir
     s = DialogSession(cfg=cfg, topic="self-knowledge", clock=_CLOCK)

@@ -343,14 +343,24 @@ def questions(
 def dialog(
     topic: str = typer.Option(None, "--topic", "-t", help="Group this session under a topic (used in the filename/title)"),
     lang: str = typer.Option(None, "--lang", help="Force note language: en | fr (default: auto-detect, offline)"),
+    socratic: bool = typer.Option(
+        False,
+        "--socratic",
+        help=(
+            "After each committed note, Claude returns ONE sharp question "
+            "back (not a summary, not affirmation). Opt-in: each commit is "
+            "an API call. The question is echoed and NOT saved into the note."
+        ),
+    ),
 ) -> None:
-    """Open an offline note-taking REPL. Each line you type is saved verbatim
-    into data/corpus/notes/ as Markdown. No LLM, no network."""
+    """Open a note-taking REPL. Each line you type is saved verbatim into
+    data/corpus/notes/ as Markdown. Offline by default; ``--socratic`` adds
+    an opt-in single-question interlocutor after each commit."""
     cfg = get_config()
     ensure_dirs(cfg)
     if lang is not None and lang not in {"en", "fr"}:
         raise typer.BadParameter("--lang must be 'en' or 'fr'")
-    run_dialog(cfg, topic=topic, language=lang, echo=typer.echo)
+    run_dialog(cfg, topic=topic, language=lang, socratic=socratic, echo=typer.echo)
 
 
 def _term_width(cap: int = 100) -> int:

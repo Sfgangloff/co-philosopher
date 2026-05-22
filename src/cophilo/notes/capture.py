@@ -6,9 +6,14 @@ like — Enter is just a newline *within* the note — and a **blank line**
 ``data/corpus/notes/``. One session is one file by default; ``/new`` starts a
 fresh file. This keeps notes substantial multi-paragraph units instead of a
 confetti of one-line files, so ``extract``/``propose`` reason over real
-arguments. No LLM, no network — the only smarts are slugging the filename and
-offline language detection for the frontmatter. ``cophilo ingest`` later
-picks the notes up like any other corpus file.
+arguments.
+
+By default offline — no LLM, no network. The only smarts are slugging the
+filename and offline language detection for the frontmatter. With opt-in
+``--socratic`` Claude is called once per committed note to return *one*
+sharp question back (never a summary, never affirmation); the question is
+echoed and **not** saved into the note. Use it sparingly — every commit is
+an API call.
 
 Session commands: ``/save`` commit the note · ``/done`` end · ``/new`` start
 a fresh note file · ``/cancel`` discard the in-progress note · ``/help``.
@@ -26,6 +31,7 @@ from slugify import slugify
 
 from cophilo.config import Config
 from cophilo.ingest.normalize import detect_language
+from cophilo.notes.schemas import SocraticQuestion
 
 Clock = Callable[[], datetime]
 _TITLE_MAX = 70
@@ -119,6 +125,43 @@ class DialogSession:
         )
 
 
+_PROMPTS_DIR = Path(__file__).resolve().parent / "prompts"
+
+
+def _load_socratic_prompt(language: str) -> str:
+    """Read the socratic-interlocutor prompt template, English fallback."""
+    candidate = _PROMPTS_DIR / language / "socratic.md"
+    if not candidate.exists():
+        candidate = _PROMPTS_DIR / "en" / "socratic.md"
+    return candidate.read_text(encoding="utf-8")
+
+
+def socratic_question(
+    cfg: Config,
+    note: str,
+    *,
+    language: str,
+    client=None,
+) -> SocraticQuestion:
+    """Ask Claude for ONE question back. Importable so tests can call it
+    with a fake client; never invoked from offline-default code paths."""
+    if client is None:
+        from cophilo.extract.claude import make_client
+
+        client = make_client(cfg)
+    template = _load_socratic_prompt(language)
+    system = template.format(language=language)
+    user = "Note just committed by the user:\n\n" + note.strip()
+    result = client.call(
+        model=cfg.claude_model_routine,
+        system=system,
+        user=user,
+        response_model=SocraticQuestion,
+        max_tokens=300,
+    )
+    return result.parsed  # type: ignore[return-value]
+
+
 _BANNER = (
     "cophilo dialog — write a note over as many lines as you want.\n"
     "A BLANK LINE (or /save) commits it as one note. Enter alone is just a "
@@ -127,6 +170,11 @@ _BANNER = (
     "Ctrl-D / Ctrl-C — a pending note is saved first).\n"
     "Other commands: /new (start a new note file)  /cancel (drop the "
     "in-progress note)  /help"
+)
+_SOCRATIC_BANNER = (
+    "  [socratic mode] After each committed note, Claude asks ONE sharp "
+    "question back. Every commit is an API call; ask, don't store. The "
+    "question is echoed but NOT saved into the note."
 )
 _HELP = (
     "(blank line)  commit the note you've been typing\n"
@@ -144,18 +192,51 @@ def run_dialog(
     *,
     topic: str | None = None,
     language: str | None = None,
+    socratic: bool = False,
+    client=None,
     input_fn: Callable[[str], str] = input,
     echo: Callable[[str], None] = print,
     clock: Clock = datetime.now,
 ) -> DialogSession:
     """Run the capture loop. ``input_fn``/``echo``/``clock`` are injectable
-    so the loop is testable without a TTY."""
+    so the loop is testable without a TTY.
+
+    ``socratic=True`` asks Claude for ONE question after each committed note
+    and echoes it (never written to disk). ``client`` is injectable so the
+    socratic path is testable without the API; left ``None``, it is built
+    lazily on the first question, only when ``socratic=True``.
+    """
     session = DialogSession(cfg=cfg, topic=topic, language=language, clock=clock)
     echo(_BANNER)
+    if socratic:
+        echo(_SOCRATIC_BANNER)
+        if client is None:
+            # Build once, up front: surface a missing API key / CLI now,
+            # not silently on the first committed note.
+            from cophilo.extract.claude import make_client
+
+            try:
+                client = make_client(cfg)
+            except (ValueError, RuntimeError) as e:
+                echo(f"  [socratic disabled: {e}]")
+                socratic = False
     if topic:
         echo(f"(topic: {topic})")
 
     buffer: list[str] = []
+
+    def _ask_socratic(note: str) -> None:
+        """Best-effort socratic ping. Echoes the question (never saved) or
+        a short failure line; never raises out of the REPL."""
+        lang = session.language or detect_language(
+            note, default=session.cfg.default_language
+        )
+        try:
+            q = socratic_question(session.cfg, note, language=lang, client=client)
+        except (ValueError, RuntimeError) as e:
+            echo(f"  ?  (socratic failed: {e})")
+            return
+        echo(f"  ?  {q.question}")
 
     def commit() -> None:
         """Flush the buffered lines as one coherent note."""
@@ -167,6 +248,8 @@ def run_dialog(
             return
         status, path = session.add(note)
         echo(f"  ↳ {status} {path.name}")
+        if socratic:
+            _ask_socratic(note)
 
     while True:
         try:
