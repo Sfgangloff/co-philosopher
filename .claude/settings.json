@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(ls *)",
+      "Bash(ls)",
+      "Bash(cat *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(find . *)",
+      "Bash(wc *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(file *)",
+      "Bash(tree *)",
+      "Bash(realpath *)",
+      "Bash(which *)",
+      "Bash(diff *)",
+      "Bash(mkdir -p *)",
+      "Bash(touch *)",
+      "Bash(cp /tmp/*)",
+      "Bash(mv /tmp/*)",
+
+      "Bash(.venv/bin/python *)",
+      "Bash(.venv/bin/python3 *)",
+      "Bash(.venv/bin/pytest *)",
+      "Bash(.venv/bin/ruff *)",
+
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git branch)",
+      "Bash(git branch --show-current)",
+      "Bash(git remote -v)",
+      "Bash(git remote)",
+      "Bash(git stash list)",
+      "Bash(git ls-files*)",
+      "Bash(git rev-parse*)",
+      "Bash(git blame *)",
+      "Bash(git add src/*)",
+      "Bash(git add tests/*)",
+      "Bash(git add .gitignore)",
+      "Bash(git add README.md)",
+      "Bash(git add REPORT.md)",
+      "Bash(git add .claude/*)",
+      "Bash(git add .githooks/*)",
+      "Bash(git add bin/*)",
+      "Bash(git commit -m *)",
+      "Bash(git commit -F *)",
+      "Bash(git stash)",
+      "Bash(git stash pop)",
+
+      "Bash(cophilo list*)",
+      "Bash(cophilo help*)",
+      "Bash(cophilo concepts*)",
+      "Bash(cophilo questions*)",
+      "Bash(cophilo graph*)",
+      "Bash(.venv/bin/cophilo list*)",
+      "Bash(.venv/bin/cophilo help*)",
+      "Bash(.venv/bin/cophilo concepts*)",
+      "Bash(.venv/bin/cophilo questions*)",
+      "Bash(.venv/bin/cophilo graph*)",
+
+      "mcp__cophilo-memory__*"
+    ],
+    "deny": [
+      "Bash(rm -rf*)",
+      "Bash(rm -fr*)",
+      "Bash(sudo*)",
+      "Bash(* sudo *)",
+      "Bash(curl * | *sh*)",
+      "Bash(wget * | *sh*)",
+      "Bash(bash <(curl*)",
+      "Bash(chmod 777*)",
+
+      "Bash(git push*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard*)",
+      "Bash(git checkout -- *)",
+      "Bash(git restore --staged --worktree*)",
+      "Bash(git clean -fd*)",
+      "Bash(git clean -f*)",
+      "Bash(git branch -D*)",
+      "Bash(git config*)",
+      "Bash(git rebase*)",
+      "Bash(git commit *--no-verify*)",
+      "Bash(git commit *--amend*)",
+      "Bash(git add -A*)",
+      "Bash(git add -u*)",
+      "Bash(git add .)",
+
+      "Bash(pip install*)",
+      "Bash(uv pip install*)",
+      "Bash(pipx*)",
+      "Bash(npm install*)",
+      "Bash(npx*)",
+
+      "Bash(* > data/corpus/*)",
+      "Bash(* >> data/corpus/*)",
+      "Bash(* > data/db/*)",
+      "Bash(* >> data/db/*)",
+      "Bash(* > data/syntheses/*)",
+      "Bash(* >> data/syntheses/*)",
+      "Bash(rm data/*)",
+      "Bash(rm -r data/*)",
+
+      "Bash(* cophilo extract*)",
+      "Bash(* cophilo propose*)",
+      "Bash(* cophilo draft*)",
+      "Bash(* cophilo biblio synthesize*)",
+      "Bash(* cophilo review *)",
+      "Bash(cophilo extract*)",
+      "Bash(cophilo propose*)",
+      "Bash(cophilo draft*)",
+      "Bash(cophilo biblio synthesize*)",
+      "Bash(cophilo review *)",
+      "Bash(* cophilo dialog *--socratic*)",
+      "Bash(cophilo dialog *--socratic*)",
+
+      "Edit(.claude/settings.json)",
+      "Edit(.claude/hooks/**)",
+      "Edit(.githooks/**)",
+      "Edit(.env)",
+      "Edit(.env.local)",
+      "Write(.claude/settings.json)",
+      "Write(.claude/hooks/**)",
+      "Write(.githooks/**)",
+      "Write(.env)",
+      "Write(.env.local)",
+      "Write(data/corpus/**)",
+      "Write(data/db/**)",
+      "Write(data/syntheses/**)",
+      "Write(data/normalized/**)",
+      "Write(data/rendered/**)",
+      "Write(data/proposals/**)",
+      "Edit(data/corpus/**)",
+      "Edit(data/db/**)",
+      "Edit(data/syntheses/**)",
+      "Edit(data/normalized/**)",
+      "Edit(data/rendered/**)",
+      "Edit(data/proposals/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": ".claude/hooks/pre-bash.sh" }]
+      },
+      {
+        "matcher": "Write|Edit|NotebookEdit",
+        "hooks": [{ "type": "command", "command": ".claude/hooks/pre-write.sh" }]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [{ "type": "command", "command": ".claude/hooks/post-edit.sh" }]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": ".claude/hooks/post-bash.sh" }]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [{ "type": "command", "command": ".claude/hooks/stop.sh" }]
+      }
+    ]
+  },
+  "enableAllProjectMcpServers": false,
+  "enabledMcpjsonServers": ["cophilo-memory"]
+}

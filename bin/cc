@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Launch Claude Code restricted to this project, with the project's rails
+# (`.claude/settings.json`, `.claude/CLAUDE.md`, `.claude/hooks/*`) loaded.
+#
+# Usage: ./bin/cc                # interactive
+#        ./bin/cc <prompt>       # one-shot via stdin
+#        COPHILO_ALLOW_PUSH=1 ./bin/cc   # authorise this session to push
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+# acceptEdits: file edits auto-approved (pre-write.sh polices them);
+#              Bash prompts unless in the settings.json allowlist.
+# --strict-mcp-config: only this project's MCPs load (no globals leak in).
+exec claude --permission-mode acceptEdits --strict-mcp-config "$@"

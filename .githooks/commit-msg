@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Enforce commit-message style:
+#   - subject line ≤70 chars
+#   - if author looks like Claude, require the Co-Authored-By footer
+#
+# `$1` is the path to the commit message file git creates.
+set -euo pipefail
+
+msg_file="$1"
+[[ -r "$msg_file" ]] || exit 0
+
+# Strip git's '#'-comments before evaluating.
+subject="$(grep -v '^#' "$msg_file" | head -n 1)"
+body="$(grep -v '^#' "$msg_file")"
+
+if (( ${#subject} > 70 )); then
+  echo "commit-msg: subject line is ${#subject} chars (>70):" >&2
+  echo "  $subject" >&2
+  exit 1
+fi
+
+# Only enforce Co-Authored-By when running interactively under Claude.
+# Heuristic: env var CLAUDE_CODE_SESSION is set when invoked from Claude,
+# but we don't rely on it — instead, if the body mentions Claude OR if the
+# user set COPHILO_REQUIRE_COAUTHOR=1, require the footer.
+if [[ "${COPHILO_REQUIRE_COAUTHOR:-0}" == "1" ]] \
+   || grep -qi 'claude' <<< "$body"; then
+  if ! grep -q '^Co-Authored-By:' <<< "$body"; then
+    echo "commit-msg: missing Co-Authored-By footer." >&2
+    echo "Add: Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>" >&2
+    exit 1
+  fi
+fi
+
+exit 0

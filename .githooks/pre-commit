@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Git-side pre-commit. Works even when Claude isn't running.
+#
+#  1) Refuse to commit anything under private data/ paths (gitignore is the
+#     first line; this is the floor in case someone -f's around it).
+#  2) Refuse to commit secrets (.env, .env.local).
+#  3) Run ruff check on staged .py files.
+#  4) Run the full pytest suite — fast (<3s on this repo).
+#
+# Bypass with --no-verify is itself denied by .claude/hooks/pre-bash.sh.
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+# 1) Forbidden paths in the staged set.
+staged="$(git diff --cached --name-only --diff-filter=ACM)"
+if [[ -z "$staged" ]]; then
+  exit 0  # nothing to do
+fi
+
+bad=""
+while IFS= read -r f; do
+  case "$f" in
+    data/corpus/*|data/db/*|data/syntheses/*|data/normalized/*|data/rendered/*|data/proposals/*)
+      bad+="$f"$'\n' ;;
+    .env|.env.local|.env.*)
+      bad+="$f"$'\n' ;;
+  esac
+done <<< "$staged"
+
+if [[ -n "$bad" ]]; then
+  echo "pre-commit: REFUSING to commit private/secret paths:" >&2
+  echo "$bad" >&2
+  echo "Unstage with: git reset HEAD <path>" >&2
+  exit 1
+fi
+
+# 2) Ruff on staged Python files.
+py_staged=$(echo "$staged" | grep -E '\.py$' || true)
+if [[ -n "$py_staged" ]] && [[ -x .venv/bin/ruff ]]; then
+  if ! echo "$py_staged" | xargs .venv/bin/ruff check; then
+    echo "pre-commit: ruff check failed on staged files." >&2
+    exit 1
+  fi
+fi
+
+# 3) Full pytest (fast).
+if [[ -x .venv/bin/python ]]; then
+  if ! .venv/bin/python -m pytest -q; then
+    echo "pre-commit: pytest failed — fix tests before committing." >&2
+    exit 1
+  fi
+fi
+
+exit 0

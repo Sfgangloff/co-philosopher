@@ -39,6 +39,11 @@ data/*.md
 # Stray scratch notes at repo root (personal, notes-derived — not tool code)
 example*.txt
 
+# Claude Code: per-user / per-machine settings only. The shared rails
+# (settings.json, CLAUDE.md, hooks/) are tracked.
+.claude/settings.local.json
+.claude/*.local.*
+
 # Editor
 .vscode/
 .idea/

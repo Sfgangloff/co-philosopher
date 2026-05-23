@@ -186,6 +186,36 @@ exposing `search_journals` and `get_journal` tools. After
 picks the server up; relative `.venv/bin/cophilo-memory-mcp` resolves
 from the repo root.
 
+## Running Claude Code on this repo
+
+This repo ships rails for autonomous Claude Code sessions: `.claude/CLAUDE.md`
++ `.claude/settings.json` (allow/deny + hook bindings) + `.claude/hooks/*.sh`
+(runtime guards) + `.githooks/*` (git-side belt-and-braces). The rails block
+writes to private `data/`, refuse force-push / `--no-verify` / cost-bearing
+`cophilo` subcommands without explicit owner approval, and run ruff + pytest
+before every commit.
+
+One-time per clone — point git at the tracked hooks:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Launch Claude Code with the project rails loaded:
+
+```bash
+./bin/cc                  # interactive; cwd-scoped; strict MCP config
+./bin/cc "<prompt>"       # one-shot
+```
+
+`bin/cc` runs `claude --permission-mode acceptEdits --strict-mcp-config`
+from the repo root. Edits are auto-approved (the `pre-write.sh` hook
+polices their targets); Bash prompts unless allowlisted. To authorise
+push for **one session**: `COPHILO_ALLOW_PUSH=1 ./bin/cc`.
+
+Per-user settings (anything not shared) belong in `.claude/settings.local.json`
+(gitignored).
+
 ## Status
 
 In place: one-step `setup.sh`, M1 (ingest, incl. Markdown), M2 (extraction),

@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Git-side pre-push. Refuses:
+#   - any force-push (--force / -f / --force-with-lease)
+#   - pushing main without COPHILO_ALLOW_PUSH=1 in the environment
+#   - pushing if tests fail
+#
+# git reads (local-ref local-sha remote-ref remote-sha) lines on stdin.
+set -euo pipefail
+
+remote="${1:-}"
+url="${2:-}"
+echo "[pre-push] remote=$remote url=$url" >&2
+
+# Capture argv (git already evaluated --force etc., but make sure).
+for arg in "$@"; do
+  case "$arg" in
+    --force|-f|--force-with-lease|--force-with-lease=*)
+      echo "pre-push: REFUSING force-push" >&2; exit 1 ;;
+  esac
+done
+
+# Read ref lines from stdin.
+pushing_main=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [[ -z "$local_ref" ]] && continue
+  case "$remote_ref" in
+    refs/heads/main|refs/heads/master) pushing_main=1 ;;
+  esac
+  # Reject deleting remote main.
+  if [[ "$local_sha" == "0000000000000000000000000000000000000000" ]]; then
+    case "$remote_ref" in
+      refs/heads/main|refs/heads/master)
+        echo "pre-push: REFUSING to delete remote main/master" >&2; exit 1 ;;
+    esac
+  fi
+done
+
+# Main requires an explicit env-var authorisation per push.
+if [[ "$pushing_main" == "1" ]] && [[ "${COPHILO_ALLOW_PUSH:-0}" != "1" ]]; then
+  echo "pre-push: REFUSING push to main without COPHILO_ALLOW_PUSH=1" >&2
+  echo "  Owner must explicitly authorise: COPHILO_ALLOW_PUSH=1 git push" >&2
+  exit 1
+fi
+
+# Tests green before any push.
+if [[ -x .venv/bin/python ]]; then
+  if ! .venv/bin/python -m pytest -q; then
+    echo "pre-push: pytest failed — refusing push." >&2
+    exit 1
+  fi
+fi
+
+exit 0
